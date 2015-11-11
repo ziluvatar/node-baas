@@ -1,0 +1,7 @@
+package baas;
+
+message Response {
+  required string request_id = 1;
+  optional bool success = 2;
+  optional string hash = 3;
+}
