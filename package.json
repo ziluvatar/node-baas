@@ -5,7 +5,7 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "http://github.com/auth0/baas.git"
+    "url": "http://github.com/auth0/node-baas.git"
   },
   "scripts": {
     "test": "NODE_ENV=test mocha --timeout 5000"

@@ -10,7 +10,7 @@ This module is a client and server.
 Installation:
 
 ```
-sudo npm i -g auth0/baas
+sudo npm i -g auth0/node-baas
 ```
 
 Start a baas server on port 9485 and salt with 10 iterations:
@@ -24,7 +24,7 @@ baas -p 9485 -s 10
 Install:
 
 ```
-npm i auth0/baas
+npm i auth0/node-baas
 ```
 
 Usage
