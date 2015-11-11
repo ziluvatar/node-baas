@@ -6,6 +6,8 @@ function BaaSPool (options, done) {
   var created = 0;
   var clients = this._clients = [];
 
+  this._current_client = 0;
+
   async.whilst(
     function () { return created < size; },
     function (done) {
@@ -14,16 +16,24 @@ function BaaSPool (options, done) {
     }, done);
 }
 
+BaaSPool.prototype._getClient = function () {
+  this._current_client++;
+
+  if (this._current_client >= this._clients.length) {
+    this._current_client = 0;
+  }
+
+  return this._clients[this._current_client];
+};
+
 BaaSPool.prototype.compare = function () {
-  var client = this._clients.shift();
+  var client = this._getClient();
   client.compare.apply(client, arguments);
-  this._clients.push(client);
 };
 
 BaaSPool.prototype.hash = function () {
-  var client = this._clients.shift();
+  var client = this._getClient();
   client.hash.apply(client, arguments);
-  this._clients.push(client);
 };
 
 
