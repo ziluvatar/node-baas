@@ -4,44 +4,32 @@ var util   = require('util');
 var logger = require('./lib/logger');
 var _      = require('lodash');
 var net = require('net');
-var Buckets = require('./lib/buckets');
 
 var RequestDecoder = require('./messages/decoders').RequestDecoder;
 
-var TypeValidator = require('./lib/pipeline/type_validator');
 var ResponseWriter = require('./lib/pipeline/response_writer');
-var RemoveToken = require('./lib/pipeline/remove_token');
-var WaitToken = require('./lib/pipeline/wait_token');
-var PutToken = require('./lib/pipeline/put_tokens');
-var Status = require('./lib/pipeline/status');
-
-var db = require('./lib/db');
+var PasswordHasher = require('./lib/pipeline/hash_password');
+var PasswordComparer = require('./lib/pipeline/compare_password');
 
 var defaults = {
-  port:      9231,
+  port:      9485,
   hostname:  '0.0.0.0',
   log_level: 'info'
 };
 
 /*
- * Creates an instance of LimitdServer.
+ * Creates an instance of BaaSServer.
  *
  * Options:
  *
- *  - `db` the path to the database. Required.
  *  - `port` the port to listen to. Defaults to 9231.
  *  - `hostname` the hostname to bind to. Defaults to INADDR_ANY
  *  - `log_level` the verbosity of the logs. Defaults to 'info'.
  *
  */
-function LimitdServer (options) {
+function BaaSServer (options) {
   EventEmitter.call(this);
   var self = this;
-
-
-  if (!options.db) {
-    throw new TypeError('"db" is required');
-  }
 
   this._config = _.extend({}, defaults, options);
   this._logger = logger(this._config.log_level);
@@ -50,14 +38,11 @@ function LimitdServer (options) {
   this._server.on('error', function (err) {
     self.emit('error', err);
   });
-
-  this._db = db(this._config.db);
-  this._buckets = new Buckets(this._db, this._config);
 }
 
-util.inherits(LimitdServer, EventEmitter);
+util.inherits(BaaSServer, EventEmitter);
 
-LimitdServer.prototype._handler = function (socket) {
+BaaSServer.prototype._handler = function (socket) {
   var sockets_details = _.pick(socket, ['remoteAddress', 'remotePort']);
   var log = this._logger;
 
@@ -82,16 +67,13 @@ LimitdServer.prototype._handler = function (socket) {
   });
 
   socket.pipe(decoder)
-        .pipe(TypeValidator(this._buckets))
-        .pipe(RemoveToken(this._buckets, log))
-        .pipe(WaitToken(this._buckets, log))
-        .pipe(PutToken(this._buckets, log))
-        .pipe(Status(this._buckets, log))
+        .pipe(PasswordHasher(this._config, socket, log))
+        .pipe(PasswordComparer(this._config, socket, log))
         .pipe(ResponseWriter())
         .pipe(socket);
 };
 
-LimitdServer.prototype.start = function (done) {
+BaaSServer.prototype.start = function (done) {
   var self = this;
   var log = self._logger;
 
@@ -116,7 +98,7 @@ LimitdServer.prototype.start = function (done) {
   return this;
 };
 
-LimitdServer.prototype.stop = function () {
+BaaSServer.prototype.stop = function () {
   var self = this;
   var log = self._logger;
   var address = self._server.address();
@@ -128,5 +110,5 @@ LimitdServer.prototype.stop = function () {
 };
 
 
-module.exports = LimitdServer;
+module.exports = BaaSServer;
 

@@ -6,21 +6,21 @@ var fs = require('fs');
 var yaml = require('js-yaml');
 var _ = require('lodash');
 
-var LimitdServer = require('../server');
+var BaaSServer = require('../server');
 
 program.version(require('../package').version)
-  .option('-d --db <file>', 'Path to the database.')
-  .option('-p --port [9231]', 'Port to bind [9231].', '9231')
+  .option('-p --port [9485]', 'Port to bind [9485].', '9485')
   .option('-h --hostname [0.0.0.0]', 'Hostname to bind [0.0.0.0].', '0.0.0.0')
+  .option('-s --salt [10]', 'Salt length.', '10')
   .option('-c --config-file <file>', 'Configuration file.')
   .parse(process.argv);
 
 
-var config = _.pick(program, ['db', 'port', 'hostname', 'configFile']);
+var config = _.pick(program, ['salt', 'port', 'hostname', 'configFile']);
 
 if (config.configFile) {
   try {
-    config_file = path.resolve(process.cwd(), config.configFile);
+    var config_file = path.resolve(process.cwd(), config.configFile);
     var doc = yaml.safeLoad(fs.readFileSync(config_file, 'utf8'));
     _.extend(config, doc);
   } catch (e) {
@@ -28,7 +28,7 @@ if (config.configFile) {
   }
 }
 
-var server = new LimitdServer(config);
+var server = new BaaSServer(config);
 
 server.start();
 

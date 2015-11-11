@@ -1,235 +1,50 @@
-[![Build Status](https://travis-ci.org/auth0/limitd.svg)](https://travis-ci.org/auth0/limitd)
+[![Build Status](https://travis-ci.org/auth0/limitd.svg)](https://travis-ci.org/auth0/node-baas)
 
-limitd is a simple daemon for rate limiting highly available applications.
+Bcrypt as a service (node.js)
 
-## Usage
-In order to use **limitd** you need to setup the server and consume it from the client.
 
-This example assumes that you want to implement rate limiting for an express application.
+This module is a client and server.
 
-### node.js client
-To instantiate the **limitd** client:
+## Server
+
+Installation:
+
+```
+sudo npm i -g auth0/baas
+```
+
+Start a baas server on port 9485 and salt with 10 iterations:
+
+```
+baas -p 9485 -s 10
+```
+
+## Client
+
+Install:
+
+```
+npm i auth0/baas
+```
+
+Usage
 
 ```javascript
-var LimitdClient = require('limitd').Client;
-var limitd = new LimitdClient('limitd://localhost:9001');
+var BaasClient = require('baas');
+var baas = new BaasClient('server:9485');
+
+//hash a password
+baas.hash('mypassword', function (err, result) {
+  console.log(result.hash)
+});
+
+//compare a password
+baas.compare({hash: 'the bcrypt hash', password: 'mypassword'}, function (err, result) {
+  console.log(result.hash)
+});
+
 ```
-
-Add a middleware to your express application to reply with [429 Too Many Requests](http://tools.ietf.org/html/rfc6585#section-4) in case the limit is reached:
-
-```javascript
-app.use(function (req, res, next) {
-  limitd.take('user', req.username, function (err, resp) {
-    if (err) return next(err);
-
-    res.set({
-      'X-RateLimit-Limit':     resp.limit,
-      'X-RateLimit-Remaining': resp.remaining,
-      'X-RateLimit-Reset':     resp.reset
-    });
-
-    if (resp.conformant) return next();
-
-    // The 429 status code indicates that the user has sent too many
-    // requests in a given amount of time ("rate limiting").
-    res.send('429');
-  });
-})
-```
-
-The client API is documented [below](#client_api).
-
-### Server setup
-Install the **limitd** server:
-```
-npm i -g limitd
-```
-
-Create a file named `limitd.config` for the server settings:
-```yaml
-#port to listen on
-port: 9001
-
-#db path
-db: /var/limitd/database
-
-#define the bucket types
-buckets:
-  user:
-    size: 5
-    per_second: 10
-```
-
-Start the server:
-```bash
-limitd --config-file /etc/limitd.config
-```
-
-You can find all configuration options [below](#server_options).
-
-> **Note**: For production you would create a daemon (upstart, systemd, initd, etc.) that runs the aforementiond command.
-
-## Motivation
-
-While there are many solutions that relies on a central database like redis, these solutions tipically put all the configuration, limits and logic on the application side.
-
-## Core concepts
-
-The core concepts of limitd are:
-
--  [Token Bucket](http://en.wikipedia.org/wiki/Token_bucket): is the main algorithm used by limitd.
--  **Bucket Type**: defines the behavior of a bucket instance. Types are defined in the configuration of the server. Eg: **ApiCall** 150 per hour.
--  **Bucket Instance**: is the incarnation of a bucket. Eg: **Customer 123 Api Call**. Bucket instances are:
-    -  Created on demand.
-    -  Destroyed when not used.
--  **Request**: a request made by a client to  **take or wait** N tokens from the **bucket instance X** of the **bucket type y**.
--  **Response**: is the response from the server to a client request indicating that the operation was succesful or not.
-
-Limitd protocol uses [Protocol Buffers](https://developers.google.com/protocol-buffers) over tcp. The definition of the protocol are in [messages/limitd.proto](/blob/master/messages/limitd.proto).
-
-## Server operations
-
--  **TAKE**: remove one or more tokens from the bucket. The server will reply immediately with `conformant` true/false depending if there are sufficient tokens.
--  **WAIT**: remove one or more tokens from the bucket. If there aren't enough tokens in the bucket the server will not reply until there are.
--  **PUT**: put one or more tokens into the bucket. The max amount of tokens depends on the bucket size. This is useful when the application needs to reset a bucket that's not autofilled by limitd.
-
-<a name="server_options"></a>
-## Server options
-The server configuration file uses [YAML](http://www.yaml.org/).
-
-### `port`
-* Type: `Number`
-* Description: Specifies the port to use to run the server. If not provided the default is `9231`.
-
-### `db`
-* Type: `Number`
-* Description: Specifies the path for the server database. This is a mandatory parameter.
-
-### `buckets`
-
-### `buckets.{type}`
-
-* Type: `Object`
-* Description: Specifies the configuration for a bucket type.
-
-### `buckets.{type}.size`
-
-* Type: `Number`
-* Description: Specifies the size of the bucket. Defaults to 0.
-
-### `buckets.{type}.per_{interval}`
-
-* Type: `Number`
-* Values: `per_second`, `per_minute`, `per_hour`, `per_day`. 
-* Description: Specifies the amount of tokens to add to the bucket per interval.
-* Notes: Only specify one interval.
-
-### `buckets.{type}.override`
-
-### `buckets.{type}.override.{key}`
-
-* Type: `Object`
-* Description: Specifies custom configuration for a bucket with the specified `key` for the particular `type`.
-
-### `buckets.{type}.override.{key}.size`
-
-* Type: `Number`
-* Description: Specifies the size of the bucket. Defaults to 0.
-
-### `buckets.{type}.override.{key}.per_{interval}`
-
-* Type: `Number`
-* Values: `per_second`, `per_minute`, `per_hour`, `per_day`. 
-* Description: Specifies the amount of tokens to add to the bucket per interval.
-* Notes: Only specify one interval.
-
-<a name="client_api"></a>
-## Client API
-
-### `LimitdClient(serverUri)`
-**Constructor**. Creates an instance of the `LimitdClient` passing the server's uri.
-
-**Parameters**
-* `serverUri: String` - A valid URI with "limitd" schema with the TCP address of the server. If no port is provided the default port is `9231`.
-
-### `LimitdClient(options)`
-**Constructor**. Creates an instance of the `LimitdClient` passing the server's uri.
-
-**Parameters**
-* `options?: Object` - An optional object whose properties are the client configuration settings.
-  * `host?: String` - The limitd server host name or IP address. If not provided `"localhost"` is used.
-  * `port?: Number` - The limitd server port number. If not provided `9231` is used.
-  
-### `client.connect(done)`
-Connects the client to the server.
-
-**Parameters**
-* `done?: () => any` - An optional function to be invoked when a connection is established. It receives no parameters.
-
-### `client.take(type, key, count, done)`
-Removes `count` tokens from the `key` bucket in of the `type` token type. If there weren't enough tokens then `response.conformant` will be `false`, `true` otherwise.
-
-**Parameters**
-
-* `type: String` - The bucket type.
-* `key: String` - The bucket key inside `type`.
-* `count?: Number` - An optional amount of tokens to take from the bucket. Defaults to `1` if not provided.
-* `done?: (err, response: TakeResponse)` - An optional callback. If an error occurs it will be in `err`. Otherwise, the result will be in `response`.
-
-### `client.wait(type, key, count, done)`
-Removes `count` tokens from the `key` bucket in of the `type` token type. If there were not enough tokens the response is delayed until there are.
-
-**Parameters**
-
-* `type: String` - The bucket type.
-* `key: String` - The bucket key inside `type`.
-* `count?: Number` - An optional amount of tokens to take from the bucket. Defaults to `1` if not provided.
-* `done?: (err, response: WaitResponse)` - An optional callback. If an error occurs it will be in `err`. Otherwise, the result will be in `response`.
-
-### `client.reset(type, key, done)`
-Fills the `key` bucket of the `type` bucket type.
-
-**Parameters**
-
-* `type: String` - The bucket type.
-* `key: String` - The bucket key inside `type`.
-* `done?: (err, response: Response)` - An optional callback. If an error occurs it will be in `err`. Otherwise, the result will be in `response`.
-
-### `client.put(type, key, count, done)`
-Put `count` tokens in the `key` bucket of the `type` bucket type.
-
-**Parameters**
-
-* `type: String` - The bucket type.
-* `key: String` - The bucket key inside `type`.
-* `count?: Number` - An optional amount of tokens to put in the bucket. If not provided it is the same as invoking `client.reset(type, key, done)`.
-* `done?: (err, response: Response)` - An optional callback. If an error occurs it will be in `err`. Otherwise, the result will be in `response`.
-
-### class: `Response`
-The `TakeResponse` is a class with the following properties:
-
-* `remaining: Number`: The amount of tokens remaining in the bucket after the operation.
-* `limit: Number`: The maximum amount of tokens available in the token.
-* `reset: Number`: A UNIX timestamp of the expected time at which the bucket will be full again (full means `remaining === limit`).
-
-### class: `TakeResponse extends Response`
-The `TakeResponse` is a class with the following properties:
-
-* `conformant: Boolean`: `true` if there were enough tokens in the bucket, `false` otherwise.
-
-### class: `WaitResponse extends Response`
-The `WaitResponse` is a class with the following properties:
-
-* `delayed: Boolean`: `true` if the request was delayed waiting for enough tokens, `false otherwise`.
-
-## About this module
-
-limitd is a node.js module that works as:
-
--  **limitd** server implementation (install with `-g`).
--  **limitdctl** is a command line utility (install with `-g`).
--  node.js client library for limitd  (install with local).
 
 ## License
 
-MIT 2014 - Auth0 INC.
+MIT 2015 - AUTH0 INC.
