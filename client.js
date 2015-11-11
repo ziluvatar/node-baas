@@ -6,6 +6,7 @@ var RequestMessage   = require('./messages').Request;
 var ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
 var url              = require('url');
 var _                = require('lodash');
+var immediate        = require('immediate');
 
 var cb = require('cb');
 
@@ -55,15 +56,15 @@ BaaSClient.prototype.connect = function (done) {
 
 BaaSClient.prototype.hash = function (password, callback) {
   if (!password) {
-    return callback(new Error('password is required'));
+    return immediate(callback, new Error('password is required'));
   }
 
   if (!callback) {
-    return callback(new Error('callback is required'));
+    return immediate(callback, new Error('callback is required'));
   }
 
   if (!this.stream || !this.stream.writable) {
-    return callback(new Error('The socket is closed.'));
+    return immediate(callback, new Error('The socket is closed.'));
   }
 
   callback = cb(callback).timeout(5000);
@@ -83,19 +84,19 @@ BaaSClient.prototype.hash = function (password, callback) {
 
 BaaSClient.prototype.compare = function (params, callback) {
   if (!params.password) {
-    return callback(new Error('password is required'));
+    return immediate(callback, new Error('password is required'));
   }
 
   if (!params.hash) {
-    return callback(new Error('hash is required'));
+    return immediate(callback, new Error('hash is required'));
   }
 
   if (!callback) {
-    return callback(new Error('callback is required'));
+    return immediate(callback, new Error('callback is required'));
   }
 
   if (!this.stream || !this.stream.writable) {
-    return callback(new Error('The socket is closed.'));
+    return immediate(callback, new Error('The socket is closed.'));
   }
 
   callback = cb(callback).timeout(5000);

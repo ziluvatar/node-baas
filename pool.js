@@ -1,6 +1,7 @@
 var async = require('async');
 var BaaSClient = require('./client');
 var _ = require('lodash');
+var immediate = require('immediate');
 
 function BaaSPool (options, done) {
   var size = options.size || 5;
@@ -42,7 +43,7 @@ BaaSPool.prototype._getClient = function () {
 BaaSPool.prototype.compare = function (options, callback) {
   var client = this._getClient();
   if (!client) {
-    return callback(new Error('client not ready yet'));
+    return immediate(callback, new Error('client not ready yet'));
   }
   client.compare.apply(client, arguments);
 };
@@ -50,7 +51,7 @@ BaaSPool.prototype.compare = function (options, callback) {
 BaaSPool.prototype.hash = function (password, callback) {
   var client = this._getClient();
   if (!client) {
-    return callback(new Error('client not ready yet'));
+    return immediate(callback, new Error('client not ready yet'));
   }
   client.hash.apply(client, arguments);
 };
