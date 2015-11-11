@@ -11,8 +11,6 @@ program.version(require('../package').version)
   .option('--hash <hash>', 'The hash to compare the password.', false)
   .parse(process.argv);
 
-console.dir(program);
-
 var config = _.pick(program, ['port', 'hostname']);
 var client = new Client(config);
 
