@@ -14,12 +14,22 @@ function BaaSPool (options, done) {
   async.whilst(
     function () { return created < size; },
     function (done) {
-      clients.push(new BaaSClient(options, done));
-      created++;
+      var client = new BaaSClient(options, function (err) {
+        created++;
+        if (err) {
+          return done(err);
+        }
+        clients.push(client);
+        done();
+      });
     }, done);
 }
 
 BaaSPool.prototype._getClient = function () {
+  if (this._clients.length === 0) {
+    return;
+  }
+
   this._current_client++;
 
   if (this._current_client >= this._clients.length) {
@@ -29,13 +39,19 @@ BaaSPool.prototype._getClient = function () {
   return this._clients[this._current_client];
 };
 
-BaaSPool.prototype.compare = function () {
+BaaSPool.prototype.compare = function (options, callback) {
   var client = this._getClient();
+  if (!client) {
+    return callback(new Error('client not ready yet'));
+  }
   client.compare.apply(client, arguments);
 };
 
-BaaSPool.prototype.hash = function () {
+BaaSPool.prototype.hash = function (password, callback) {
   var client = this._getClient();
+  if (!client) {
+    return callback(new Error('client not ready yet'));
+  }
   client.hash.apply(client, arguments);
 };
 
