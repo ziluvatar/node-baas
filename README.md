@@ -40,7 +40,7 @@ baas.hash('mypassword', function (err, result) {
 
 //compare a password
 baas.compare({hash: 'the bcrypt hash', password: 'mypassword'}, function (err, result) {
-  console.log(result.hash)
+  console.log(result.success)
 });
 
 ```
