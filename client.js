@@ -12,7 +12,7 @@ var cb = require('cb');
 var DEFAULT_PORT = 9485;
 var DEFAULT_HOST = 'localhost';
 
-function BaaSClient (options) {
+function BaaSClient (options, done) {
   options = options || {};
   EventEmitter.call(this);
   if (typeof options === 'string') {
@@ -23,7 +23,7 @@ function BaaSClient (options) {
     options.host = options.host || DEFAULT_HOST;
   }
   this._options = options;
-  this.connect();
+  this.connect(done);
 }
 
 util.inherits(BaaSClient, EventEmitter);

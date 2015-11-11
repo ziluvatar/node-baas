@@ -1,11 +1,11 @@
 var BaaSServer = require('..').Server;
-var BaaSClient = require('..').Client;
+var BaaSPool = require('..').Pool;
 
 var assert = require('chai').assert;
 var client;
 var bcrypt = require('bcrypt');
 
-describe('baas server', function () {
+describe('client pool server', function () {
 
   var server;
 
@@ -14,8 +14,7 @@ describe('baas server', function () {
 
     server.start(function (err, address) {
       if (err) return done(err);
-      client = new BaaSClient(address);
-      client.once('connect', done);
+      client = new BaaSPool(address, done);
     });
   });
 
