@@ -55,15 +55,15 @@ BaaSClient.prototype.connect = function (done) {
 
 BaaSClient.prototype.hash = function (password, callback) {
   if (!password) {
-    callback(new Error('password is required'));
+    return callback(new Error('password is required'));
   }
 
   if (!callback) {
-    callback(new Error('callback is required'));
+    return callback(new Error('callback is required'));
   }
 
   if (!this.stream || !this.stream.writable) {
-    callback(new Error('The socket is closed.'));
+    return callback(new Error('The socket is closed.'));
   }
 
   var done = cb(done).timeout(5000);
@@ -83,19 +83,19 @@ BaaSClient.prototype.hash = function (password, callback) {
 
 BaaSClient.prototype.compare = function (params, callback) {
   if (!params.password) {
-    callback(new Error('password is required'));
+    return callback(new Error('password is required'));
   }
 
   if (!params.hash) {
-    callback(new Error('hash is required'));
+    return callback(new Error('hash is required'));
   }
 
   if (!callback) {
-    callback(new Error('callback is required'));
+    return callback(new Error('callback is required'));
   }
 
   if (!this.stream || !this.stream.writable) {
-    callback(new Error('The socket is closed.'));
+    return callback(new Error('The socket is closed.'));
   }
 
   var done = cb(done).timeout(5000);
