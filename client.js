@@ -66,7 +66,7 @@ BaaSClient.prototype.hash = function (password, callback) {
     return callback(new Error('The socket is closed.'));
   }
 
-  var done = cb(done).timeout(5000);
+  callback = cb(callback).timeout(5000);
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),
@@ -98,7 +98,7 @@ BaaSClient.prototype.compare = function (params, callback) {
     return callback(new Error('The socket is closed.'));
   }
 
-  var done = cb(done).timeout(5000);
+  callback = cb(callback).timeout(5000);
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),

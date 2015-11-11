@@ -1,10 +1,13 @@
 var async = require('async');
 var BaaSClient = require('./client');
+var _ = require('lodash');
 
 function BaaSPool (options, done) {
   var size = options.size || 5;
   var created = 0;
   var clients = this._clients = [];
+
+  done = done || _.noop;
 
   this._current_client = 0;
 
