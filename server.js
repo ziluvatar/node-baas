@@ -14,7 +14,7 @@ var PasswordComparer = require('./lib/pipeline/compare_password');
 var defaults = {
   port:      9485,
   hostname:  '0.0.0.0',
-  log_level: 'info'
+  logLevel: 'info'
 };
 
 /*
@@ -24,7 +24,7 @@ var defaults = {
  *
  *  - `port` the port to listen to. Defaults to 9231.
  *  - `hostname` the hostname to bind to. Defaults to INADDR_ANY
- *  - `log_level` the verbosity of the logs. Defaults to 'info'.
+ *  - `logLevel` the verbosity of the logs. Defaults to 'info'.
  *
  */
 function BaaSServer (options) {
@@ -32,7 +32,7 @@ function BaaSServer (options) {
   var self = this;
 
   this._config = _.extend({}, defaults, options);
-  this._logger = logger(this._config.log_level);
+  this._logger = logger(this._config.logLevel);
   this._server = net.createServer(this._handler.bind(this));
 
   this._server.on('error', function (err) {

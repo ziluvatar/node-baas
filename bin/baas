@@ -12,11 +12,12 @@ program.version(require('../package').version)
   .option('-p --port [9485]', 'Port to bind [9485].', '9485')
   .option('-h --hostname [0.0.0.0]', 'Hostname to bind [0.0.0.0].', '0.0.0.0')
   .option('-s --salt [10]', 'Salt length.', '10')
+  .option('-l --log-level [info]', 'Debug level', 'info')
   .option('-c --config-file <file>', 'Configuration file.')
   .parse(process.argv);
 
 
-var config = _.pick(program, ['salt', 'port', 'hostname', 'configFile']);
+var config = _.pick(program, ['salt', 'port', 'hostname', 'configFile', 'logLevel']);
 
 if (config.configFile) {
   try {
