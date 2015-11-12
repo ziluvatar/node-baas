@@ -7,7 +7,7 @@ describe('wrong requests', function () {
 
   before(function (done) {
 
-    server = new BaaSServer();
+    server = new BaaSServer({logLevel: 'error'});
 
     server.start(function (err, addr) {
       if (err) return done(err);

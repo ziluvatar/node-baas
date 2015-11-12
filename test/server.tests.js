@@ -10,7 +10,7 @@ describe('baas server', function () {
   var server;
 
   before(function (done) {
-    server = new BaaSServer({ port: 9001 });
+    server = new BaaSServer({ port: 9001, logLevel: 'error' });
 
     server.start(function (err, address) {
       if (err) return done(err);
