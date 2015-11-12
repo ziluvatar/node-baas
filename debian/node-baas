@@ -33,7 +33,7 @@ script
     --pidfile /var/run/$UPSTART_JOB.pid \
     --chuid node-baas \
     --start \
-    --exec $NODE_PATH/node $DIR/bin/node-baas -- -p $PORT -s $SALT >> /var/log/node-baas.log 2>&1
+    --exec $NODE_PATH/node $DIR/bin/baas -- -p $PORT -s $SALT >> /var/log/node-baas.log 2>&1
 end script
 
 post-start script
