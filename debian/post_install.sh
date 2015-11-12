@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Postinst script for node-baas package
+# Postinst script for baas package
 
-NAME="node-baas"
+NAME="baas"
 file_default="/etc/default/${NAME}_defaults"
 file_init="/etc/init/$NAME.conf"
 

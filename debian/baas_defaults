@@ -3,6 +3,6 @@
 NODE_PATH=/opt/node-v4.1.2-linux-x64/bin
 
 # Installation dir
-export DIR=/opt/node-baas
+export DIR=/opt/baas
 
 export PATH=$NODE_PATH:$PATH

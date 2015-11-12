@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# prerm script for node-baas package
+# prerm script for baas package
 
-NAME="node-baas"
+NAME="baas"
 
 service $NAME stop || true
 rm -f /etc/logrotate.d/$NAME-logs

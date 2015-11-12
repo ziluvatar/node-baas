@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# preinst script for node-baas package
+# preinst script for baas package
 
-NAME="node-baas"
+NAME="baas"
 file_default="/etc/default/$NAME_defaults"
 file_init="/etc/init/$NAME.conf"
 
