@@ -33,6 +33,7 @@
     "pb-stream": "~1.0.2",
     "protobufjs": "~3.8.2",
     "randomstring": "~1.0.3",
+    "read": "~1.0.7",
     "reconnect-net": "0.0.0",
     "through": "~2.3.6"
   },
