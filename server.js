@@ -6,6 +6,7 @@ var _      = require('lodash');
 var net = require('net');
 
 var RequestDecoder = require('./messages/decoders').RequestDecoder;
+var randomstring = require('randomstring');
 
 var ResponseWriter = require('./lib/pipeline/response_writer');
 var PasswordHasher = require('./lib/pipeline/hash_password');
@@ -44,25 +45,29 @@ util.inherits(BaaSServer, EventEmitter);
 
 BaaSServer.prototype._handler = function (socket) {
   var sockets_details = _.pick(socket, ['remoteAddress', 'remotePort']);
+
+  sockets_details.connection = socket._connection_id = randomstring.generate(5);
+
   var log = this._logger;
 
+
   socket.on('error', function (err) {
-    log.debug(_.extend(sockets_details, {
+    log.info(_.extend(sockets_details, {
       err: {
         code:    err.code,
         message: err.message
       }
     }), 'connection error');
   }).on('close', function () {
-    log.debug(sockets_details, 'connection closed');
+    log.info(sockets_details, 'connection closed');
   });
 
-  log.debug(sockets_details, 'connection accepted');
+  log.info(sockets_details, 'connection accepted');
 
   var decoder = RequestDecoder();
 
   decoder.on('error', function () {
-    log.debug(sockets_details, 'unknown message format');
+    log.info(sockets_details, 'unknown message format');
     return socket.end();
   });
 
@@ -88,7 +93,9 @@ BaaSServer.prototype.start = function (done) {
     }
 
     var address = self._server.address();
-    log.debug(address, 'server started');
+
+    log.info(address, 'server started');
+
     self.emit('started', address);
     if (done) {
       done(null, address);
