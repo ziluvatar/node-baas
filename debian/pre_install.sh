@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# preinst script for limitd package
+# preinst script for node-baas package
 
-NAME="limitd"
+NAME="node-baas"
 file_default="/etc/default/$NAME_defaults"
 file_init="/etc/init/$NAME.conf"
 

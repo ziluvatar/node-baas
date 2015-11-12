@@ -1,5 +1,5 @@
 #
-# Makefile for deb builds of limitd
+# Makefile for deb builds of node-baas
 #
 
 build_deb: check-fpm-installed check-version-variable check-deb-variables
@@ -14,15 +14,15 @@ build_deb: check-fpm-installed check-version-variable check-deb-variables
 
 	find . -name ".npmignore" -o -name ".gitignore" -delete
 
-	fpm -C $(WORKSPACE) --deb-user limitd --deb-group limitd \
+	fpm -C $(WORKSPACE) --deb-user node-baas --deb-group node-baas \
 	--before-install debian/pre_install.sh --after-install debian/post_install.sh \
 	--before-remove debian/pre_rm.sh \
-	--prefix /opt --deb-upstart debian/limitd --deb-default debian/limitd_defaults \
-	--url ' $(GIT_URL)' --version $(VERSION_NUMBER) -n limitd \
+	--prefix /opt --deb-upstart debian/node-baas --deb-default debian/node-baas_defaults \
+	--url ' $(GIT_URL)' --version $(VERSION_NUMBER) -n node-baas \
 	-d 'nodejs' -d 'nodejs-legacy' \
 	-x '**/.git*' -x '*.tgz' -x '**/test/*' \
 	--description 'Jenkins build $(VERSION_NUMBER) - git commit $(GIT_BRANCH)-$(GIT_COMMIT)' \
-	-t deb -s dir limitd 
+	-t deb -s dir node-baas 
 
 	git checkout .
 

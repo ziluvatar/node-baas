@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# prerm script for limitd package
+# prerm script for node-baas package
 
-NAME="limitd"
+NAME="node-baas"
 
 service $NAME stop || true
 rm -f /etc/logrotate.d/$NAME-logs

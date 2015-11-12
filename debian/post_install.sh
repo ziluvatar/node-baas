@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Postinst script for limitd package
+# Postinst script for node-baas package
 
-NAME="limitd"
+NAME="node-baas"
 file_default="/etc/default/${NAME}_defaults"
 file_init="/etc/init/$NAME.conf"
 
@@ -35,10 +35,3 @@ rm $file_default.postinst $file_init.postinst 2> /dev/null || true
 # Copy logrotate script
 cp /opt/$NAME/debian/$NAME-logs /etc/logrotate.d/
 
-# Create database dir and deploy example config file
-mkdir -p /var/limitd/database
-chown -R $NAME:$NAME /var/limitd
-if [ ! -s /etc/limitd.conf ]
-then
-	cp /opt/$NAME/conf/limitd.conf.example /etc/limitd.conf
-fi

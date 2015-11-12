@@ -1,7 +1,7 @@
-# limitd
+# node-baas
 #
 
-description "limitd service"
+description "node-baas service"
 author      "auth0"
 start on (local-filesystems and net-device-up IFACE=eth0)
 
@@ -23,23 +23,27 @@ limit nofile 10000 10000
 
 script
   # If default file, source it
-  [ -f /etc/default/limitd_defaults ] && . /etc/default/limitd_defaults
+  PORT=9485
+  SALT=10
+  [ -f /etc/default/node-baas_defaults ] && . /etc/default/node-baas_defaults
 
   exec start-stop-daemon \
     -d "/usr/bin" \
     --make-pidfile \
     --pidfile /var/run/$UPSTART_JOB.pid \
-    --chuid limitd \
+    --chuid node-baas \
     --start \
-    --exec $NODE_PATH/node $DIR/bin/limitd -- --config-file $CONF_FILE >> /var/log/limitd.log 2>&1
+    --exec $NODE_PATH/node $DIR/bin/node-baas -- -p $PORT -s $SALT >> /var/log/node-baas.log 2>&1
 end script
 
 post-start script
-  exec >> /var/log/limitd.log 2>&1
+  exec >> /var/log/node-baas.log 2>&1
   echo "`date`: starting $UPSTART_JOB"
 end script
 
 post-stop script
-  exec >> /var/log/limitd.log 2>&1
+  exec >> /var/log/node-baas.log 2>&1
   echo "`date`: stopped $UPSTART_JOB"
 end script
+
+

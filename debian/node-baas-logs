@@ -1,4 +1,4 @@
-/var/log/limitd.log {
+/var/log/node-baas.log {
   copytruncate
   hourly
   rotate 5
