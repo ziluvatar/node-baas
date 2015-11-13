@@ -59,10 +59,10 @@ BaaSServer.prototype._handler = function (socket) {
       }
     }), 'connection error');
   }).on('close', function () {
-    log.info(sockets_details, 'connection closed');
+    log.debug(sockets_details, 'connection closed');
   });
 
-  log.info(sockets_details, 'connection accepted');
+  log.debug(sockets_details, 'connection accepted');
 
   var decoder = RequestDecoder();
 
