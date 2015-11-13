@@ -3,6 +3,7 @@ var async = require('async');
 var BaaSClient = require('./client');
 var _ = require('lodash');
 var immediate = require('immediate');
+var util = require('util');
 
 function BaaSPool (options, done) {
   EventEmitter.call(this);
@@ -36,6 +37,8 @@ function BaaSPool (options, done) {
       });
     }, done);
 }
+
+util.inherits(BaaSPool, EventEmitter);
 
 BaaSPool.prototype._getClient = function () {
   if (this._clients.length === 0) {

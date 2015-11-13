@@ -35,6 +35,10 @@ describe('client pool server', function () {
     });
   });
 
+  it('should be able to subscribe to events', function () {
+    assert.ok(client.on);
+  });
+
   it('should be able to compare a password and return ok', function (done) {
     var password = 'foobar';
     var hash = bcrypt.hashSync(password, 10);
