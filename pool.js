@@ -1,9 +1,12 @@
+var EventEmitter     = require('events').EventEmitter;
 var async = require('async');
 var BaaSClient = require('./client');
 var _ = require('lodash');
 var immediate = require('immediate');
 
 function BaaSPool (options, done) {
+  EventEmitter.call(this);
+
   var size = options.size || 5;
   var created = 0;
   var clients = this._clients = [];
@@ -12,14 +15,22 @@ function BaaSPool (options, done) {
 
   this._current_client = 0;
 
+  var pool = this;
+
   async.whilst(
     function () { return created < size; },
     function (done) {
       var client = new BaaSClient(options, function (err) {
         created++;
+
         if (err) {
           return done(err);
         }
+
+        client.on('error', function (err) {
+          pool.emit('error', err, client);
+        });
+
         clients.push(client);
         done();
       });
