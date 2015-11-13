@@ -1,6 +1,6 @@
 {
   "name": "baas",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Daemon for rate limiting using tocket buckets.",
   "main": "index.js",
   "repository": {
