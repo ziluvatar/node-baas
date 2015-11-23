@@ -19,6 +19,8 @@ Start a baas server on port 9485 and salt with 10 iterations:
 baas -p 9485 -s 10
 ```
 
+**Important**: The server runs bcrypt synchronously (not using the node thread pool) as it is meant to be used in servers with only 1 core due as it provides the best tx/$ relationship in AWS (t2-micro). Might make sense to make this a configurable option.
+
 ## Client
 
 Install:
