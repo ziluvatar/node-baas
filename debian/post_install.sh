@@ -21,7 +21,7 @@ then
 		service $NAME start
 	else
 		echo "Reloading"
-		service $NAME reload
+		service $NAME reload || service $NAME restart
 	fi
 else
 	echo "Restarting"
