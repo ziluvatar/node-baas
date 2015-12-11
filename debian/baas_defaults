@@ -1,6 +1,6 @@
 
 #Modify which default nodejs/iojs installation should use
-NODE_PATH=/opt/node-v4.2.2-linux-x64/bin
+NODE_PATH=/opt/node-v4.2.3-linux-x64/bin
 
 # Installation dir
 export DIR=/opt/baas
