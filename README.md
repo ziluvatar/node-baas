@@ -51,6 +51,17 @@ baas.compare({hash: 'the bcrypt hash', password: 'mypassword'}, function (err, r
 
 ```
 
+## To install on ubuntu/debian
+
+```
+
+sudo sh -c 'echo deb http://debs.auth0.com/ stable main > /etc/apt/sources.list.d/auth0.list'
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv F63E3D3A
+sudo aptitude update
+sudo aptitude install -y baas
+
+```
+
 ## License
 
 MIT 2015 - AUTH0 INC.
