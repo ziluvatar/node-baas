@@ -1,6 +1,8 @@
 #
 # Makefile for deb builds of baas
 #
+NODE_VERSION="4.2.6"
+DEFAULT_INIT_CONFIG=baas_defaults
 
 build_deb: check-fpm-installed check-version-variable check-deb-variables
 	#
@@ -14,13 +16,15 @@ build_deb: check-fpm-installed check-version-variable check-deb-variables
 
 	find . -name ".npmignore" -o -name ".gitignore" -delete
 
+	sed -e 's/{{NODE_VERSION}}/$(NODE_VERSION)/g' debian/$(DEFAULT_INIT_CONFIG).template > debian/$(DEFAULT_INIT_CONFIG)
+
 	fpm -C $(WORKSPACE) --deb-user baas --deb-group baas \
 	--before-install debian/pre_install.sh --after-install debian/post_install.sh \
 	--before-remove debian/pre_rm.sh \
 	--prefix /opt/baas --deb-upstart debian/baas --deb-default debian/baas_defaults \
 	--url ' $(GIT_URL)' --version $(VERSION_NUMBER) -n baas \
-	-d 'nodejs' -d 'nodejs-legacy' \
-	-x '**/.git*' -x '*.tgz' -x '**/test/*' \
+	-d auth0-node-v$(NODE_VERSION)-linux-x64 \
+	-x '**/.git*' -x '*.tgz' -x '**/test/*' -x 'debian/*.template' \
 	--description 'Jenkins build $(VERSION_NUMBER) - git commit $(GIT_BRANCH)-$(GIT_COMMIT)' \
 	-t deb -s dir .
 
