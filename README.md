@@ -53,10 +53,17 @@ baas.compare({hash: 'the bcrypt hash', password: 'mypassword'}, function (err, r
 
 ## To install on ubuntu/debian
 
+This program needs nodejs 4 or greater, so you need to install one (*BEWARE* it with probably replace the default ubuntu nodejs for the latest 4 version)
+
+Follow this link https://nodejs.org/en/download/package-manager/
+
+
+Then, to install baas:
+
 ```
 
-sudo sh -c 'echo deb http://debs.auth0.com/ stable main > /etc/apt/sources.list.d/auth0.list'
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv F63E3D3A
+sudo sh -c 'echo deb http://debs.auth0.com/ stable main > /etc/apt/sources.list.d/auth0.list'
 sudo aptitude update
 sudo aptitude install -y baas
 
