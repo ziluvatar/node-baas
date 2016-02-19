@@ -1,7 +1,7 @@
 #
 # Makefile for deb builds of baas
 #
-NODE_VERSION="4.2.6"
+NODE_VERSION="4.3.1"
 DEFAULT_INIT_CONFIG=baas_defaults
 
 build_deb: check-fpm-installed check-version-variable check-deb-variables
