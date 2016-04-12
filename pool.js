@@ -51,25 +51,26 @@ BaaSPool.prototype._getClient = function (callback) {
 BaaSPool.prototype._releaseClient = function (client) {
   const self = this;
   if (self._queuedRequests.length > 0) {
-    return self._queuedRequests.pop()(client);
+    self._queuedRequests.pop()(client);
+    return;
   }
   self._freeClients.push(client);
 };
 
 ['compare', 'hash'].forEach(function (method) {
-  BaaSPool.prototype[method] = function (options, callback) {
+  BaaSPool.prototype[method] = function () {
     const args = Array.prototype.slice.call(arguments);
     const originalCallback = args.pop();
     const self = this;
 
     self._getClient(function (err, client) {
       if (err) {
-        return callback(err);
+        return originalCallback(err);
       }
 
       args.push(function () {
         self._releaseClient(client);
-        originalCallback.apply(null, arguments);
+        originalCallback.apply(client, arguments);
       });
 
       client[method].apply(client, args);
