@@ -38,13 +38,13 @@ BaaSPool.prototype._getClient = function (callback) {
     return;
   }
 
+  //going to create a new client
+  self._openClients++;
   const newClient = new BaaSClient(this._connectionOptions, function (err) {
     if (err) {
       return callback(err);
     }
-    self._openClients++;
-    self._freeClients.push(newClient);
-    callback(null, newClient);
+    setImmediate(callback, null, newClient);
   });
 };
 
