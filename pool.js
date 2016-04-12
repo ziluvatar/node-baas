@@ -51,7 +51,7 @@ BaaSPool.prototype._getClient = function (callback) {
 BaaSPool.prototype._releaseClient = function (client) {
   const self = this;
   if (self._queuedRequests.length > 0) {
-    self._queuedRequests.pop()(client);
+    self._queuedRequests.pop()(null, client);
     return;
   }
   self._freeClients.push(client);
