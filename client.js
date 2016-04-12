@@ -7,6 +7,7 @@ var ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
 var url              = require('url');
 var _                = require('lodash');
 var immediate        = require('immediate');
+var TIMEOUT          = 1000 * 60 * 2;
 
 var cb = require('cb');
 
@@ -70,7 +71,7 @@ BaaSClient.prototype.hash = function (password, callback) {
 
   this._requestCount++;
 
-  callback = cb(callback).timeout(10000);
+  callback = cb(callback).timeout(TIMEOUT);
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),
@@ -104,7 +105,7 @@ BaaSClient.prototype.compare = function (params, callback) {
 
   this._requestCount++;
 
-  callback = cb(callback).timeout(10000);
+  callback = cb(callback).timeout(TIMEOUT);
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),
