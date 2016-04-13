@@ -7,6 +7,7 @@ var ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
 var url              = require('url');
 var _                = require('lodash');
 var immediate        = require('immediate');
+var TIMEOUT          = 1000 * 60 * 2;
 
 var cb = require('cb');
 
@@ -25,6 +26,7 @@ function BaaSClient (options, done) {
   }
   this._options = options;
   this.connect(done);
+  this._requestCount = 0;
 }
 
 util.inherits(BaaSClient, EventEmitter);
@@ -67,7 +69,9 @@ BaaSClient.prototype.hash = function (password, callback) {
     return immediate(callback, new Error('The socket is closed.'));
   }
 
-  callback = cb(callback).timeout(5000);
+  this._requestCount++;
+
+  callback = cb(callback).timeout(TIMEOUT);
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),
@@ -99,7 +103,9 @@ BaaSClient.prototype.compare = function (params, callback) {
     return immediate(callback, new Error('The socket is closed.'));
   }
 
-  callback = cb(callback).timeout(5000);
+  this._requestCount++;
+
+  callback = cb(callback).timeout(TIMEOUT);
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),
@@ -113,6 +119,10 @@ BaaSClient.prototype.compare = function (params, callback) {
   this.once('response_' + request.id, function (response) {
     callback(null, { success: response.success });
   });
+};
+
+BaaSClient.prototype.disconnect = function () {
+  this.socket.disconnect();
 };
 
 module.exports = BaaSClient;

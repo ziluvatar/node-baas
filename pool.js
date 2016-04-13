@@ -1,74 +1,91 @@
-var EventEmitter     = require('events').EventEmitter;
-var async = require('async');
-var BaaSClient = require('./client');
-var _ = require('lodash');
-var immediate = require('immediate');
-var util = require('util');
+const _            = require('lodash');
+const EventEmitter = require('events').EventEmitter;
+const BaaSClient   = require('./client');
+const util         = require('util');
 
-function BaaSPool (options, done) {
+function BaaSPool (options) {
   EventEmitter.call(this);
 
-  var size = options.size || 5;
-  var created = 0;
-  var clients = this._clients = [];
+  this._connectionOptions = _.omit(options, ['pool']);
 
-  done = done || _.noop;
+  this._options = _.extend({}, options.pool || {}, {
+    maxConnections: 20,
+    maxRequestsPerConnection: 10
+  });
 
-  this._current_client = 0;
-
-  var pool = this;
-
-  async.whilst(
-    function () { return created < size; },
-    function (done) {
-      var client = new BaaSClient(options, function (err) {
-        created++;
-
-        if (err) {
-          return done(err);
-        }
-
-        client.on('error', function (err) {
-          pool.emit('error', err, client);
-        });
-
-        clients.push(client);
-        done();
-      });
-    }, done);
+  this._openClients = 0;
+  this._freeClients = [];
+  this._queuedRequests = [];
 }
 
 util.inherits(BaaSPool, EventEmitter);
 
-BaaSPool.prototype._getClient = function () {
-  if (this._clients.length === 0) {
+BaaSPool.prototype._getClient = function (callback) {
+  const self = this;
+  const freeClient = this._freeClients.pop();
+
+  if (freeClient) {
+    if (freeClient._requestCount < this._options.maxRequestsPerConnection) {
+      return setImmediate(callback, null, freeClient);
+    }
+
+    self._openClients--;
+    freeClient.disconnect();
+  }
+
+  if (self._openClients === self._options.maxConnections) {
+    this._queuedRequests.push(callback);
     return;
   }
 
-  this._current_client++;
-
-  if (this._current_client >= this._clients.length) {
-    this._current_client = 0;
-  }
-
-  return this._clients[this._current_client];
+  //going to create a new client
+  self._openClients++;
+  const newClient = new BaaSClient(this._connectionOptions, function (err) {
+    if (err) {
+      return callback(err);
+    }
+    setImmediate(callback, null, newClient);
+  });
 };
 
-BaaSPool.prototype.compare = function (options, callback) {
-  var client = this._getClient();
-  if (!client) {
-    return immediate(callback, new Error('client not ready yet'));
+BaaSPool.prototype._releaseClient = function (client) {
+  const self = this;
+
+
+  if (self._queuedRequests.length < 0) {
+    return self._freeClients.push(client);
   }
-  client.compare.apply(client, arguments);
+
+  var queued = self._queuedRequests.pop();
+
+  if (client._requestCount < self._options.maxRequestsPerConnection) {
+    queued(null, client);
+  } else {
+    self._freeClients.push(client);
+    self._getClient(queued);
+  }
+
 };
 
-BaaSPool.prototype.hash = function (password, callback) {
-  var client = this._getClient();
-  if (!client) {
-    return immediate(callback, new Error('client not ready yet'));
-  }
-  client.hash.apply(client, arguments);
-};
+['compare', 'hash'].forEach(function (method) {
+  BaaSPool.prototype[method] = function () {
+    const args = Array.prototype.slice.call(arguments);
+    const originalCallback = args.pop();
+    const self = this;
 
+    self._getClient(function (err, client) {
+      if (err) {
+        return originalCallback(err);
+      }
+
+      args.push(function () {
+        self._releaseClient(client);
+        originalCallback.apply(client, arguments);
+      });
+
+      client[method].apply(client, args);
+    });
+  };
+});
 
 module.exports = BaaSPool;
