@@ -16,8 +16,13 @@ program.version(require('../package').version)
   .option('-c --config-file <file>', 'Configuration file.')
   .parse(process.argv);
 
+//I don't like this
+var agent  = require('auth0-instrumentation');
+var pkg    = require('../package.json');
+agent.init(pkg, process.env);
 
 var config = _.pick(program, ['salt', 'port', 'hostname', 'configFile', 'logLevel']);
+config.metrics = agent.metrics;
 
 if (config.configFile) {
   try {
