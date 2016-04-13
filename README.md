@@ -37,7 +37,14 @@ var baas = new BaasClient('server:9485');
 
 //or use a pool of five connections
 var BaasPool = require('baas').Pool;
-var baas = new BaasPool({ port: 9485, size: 5 });
+var baas = new BaasPool({
+  port: 9485,
+  host: 'my-baas-load-balancer'
+  pool: {
+    maxConnections: 20,
+    maxRequestsPerConnection: 10
+  }
+});
 
 //hash a password
 baas.hash('mypassword', function (err, result) {
