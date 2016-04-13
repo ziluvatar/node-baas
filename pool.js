@@ -9,7 +9,7 @@ function BaaSPool (options) {
   this._connectionOptions = _.omit(options, ['pool']);
 
   this._options = _.extend({}, options.pool || {}, {
-    maxConnections: 100,
+    maxConnections: 20,
     maxRequestsPerConnection: 10
   });
 
@@ -27,10 +27,10 @@ BaaSPool.prototype._getClient = function (callback) {
   if (freeClient) {
     if (freeClient._requestCount < this._options.maxRequestsPerConnection) {
       return setImmediate(callback, null, freeClient);
-    } else {
-      self._openClients--;
-      freeClient.disconnect();
     }
+
+    self._openClients--;
+    freeClient.disconnect();
   }
 
   if (self._openClients === self._options.maxConnections) {
@@ -50,11 +50,21 @@ BaaSPool.prototype._getClient = function (callback) {
 
 BaaSPool.prototype._releaseClient = function (client) {
   const self = this;
-  if (self._queuedRequests.length > 0) {
-    self._queuedRequests.pop()(null, client);
-    return;
+
+
+  if (self._queuedRequests.length < 0) {
+    return self._freeClients.push(client);
   }
-  self._freeClients.push(client);
+
+  var queued = self._queuedRequests.pop();
+
+  if (client._requestCount < self._options.maxRequestsPerConnection) {
+    queued(null, client);
+  } else {
+    self._freeClients.push(client);
+    self._getClient(queued);
+  }
+
 };
 
 ['compare', 'hash'].forEach(function (method) {
