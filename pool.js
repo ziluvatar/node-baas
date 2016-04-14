@@ -51,20 +51,13 @@ BaaSPool.prototype._getClient = function (callback) {
 BaaSPool.prototype._releaseClient = function (client) {
   const self = this;
 
-
-  if (self._queuedRequests.length < 0) {
-    return self._freeClients.push(client);
-  }
+  self._freeClients.push(client);
 
   var queued = self._queuedRequests.pop();
 
-  if (client._requestCount < self._options.maxRequestsPerConnection) {
-    queued(null, client);
-  } else {
-    self._freeClients.push(client);
+  if (queued) {
     self._getClient(queued);
   }
-
 };
 
 ['compare', 'hash'].forEach(function (method) {
