@@ -2,6 +2,7 @@ const _            = require('lodash');
 const EventEmitter = require('events').EventEmitter;
 const BaaSClient   = require('./client');
 const util         = require('util');
+const retry        = require('retry');
 
 function BaaSPool (options) {
   EventEmitter.call(this);
@@ -62,21 +63,39 @@ BaaSPool.prototype._releaseClient = function (client) {
 
 ['compare', 'hash'].forEach(function (method) {
   BaaSPool.prototype[method] = function () {
+    const operation = retry.operation({
+      minTimeout: 50,
+      maxTimeout: 100,
+    });
+
     const args = Array.prototype.slice.call(arguments);
     const originalCallback = args.pop();
     const self = this;
 
-    self._getClient(function (err, client) {
-      if (err) {
-        return originalCallback(err);
-      }
+    operation.attempt(function () {
+      self._getClient(function (err, client) {
+        if (operation.retry(err)) {
+          return;
+        }
 
-      args.push(function () {
-        self._releaseClient(client);
-        originalCallback.apply(client, arguments);
+        if (err) {
+          return originalCallback(err && operation.mainError());
+        }
+
+        function callback (err) {
+          if (operation.retry(err)) {
+            return;
+          }
+          const args = Array.prototype.slice.call(arguments);
+          args[0] = err && operation.mainError();
+          self._releaseClient(client);
+          originalCallback.apply(client, args);
+        }
+
+        args.push(callback);
+
+        client[method].apply(client, args);
       });
-
-      client[method].apply(client, args);
     });
   };
 });

@@ -14,7 +14,8 @@ describe('client pool server', function () {
 
     server.start(function (err, address) {
       if (err) return done(err);
-      client = new BaaSPool(address, done);
+      client = new BaaSPool(address);
+      done();
     });
   });
 

@@ -1,18 +1,18 @@
-var EventEmitter     = require('events').EventEmitter;
-var util             = require('util');
-var randomstring     = require('randomstring');
-var reconnect        = require('reconnect-net');
-var RequestMessage   = require('./messages').Request;
-var ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
-var url              = require('url');
-var _                = require('lodash');
-var immediate        = require('immediate');
-var TIMEOUT          = 1000 * 60 * 2;
+const EventEmitter     = require('events').EventEmitter;
+const util             = require('util');
+const randomstring     = require('randomstring');
+const reconnect        = require('reconnect-net');
+const RequestMessage   = require('./messages').Request;
+const ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
+const url              = require('url');
+const immediate        = require('immediate');
 
-var cb = require('cb');
+const _  = require('lodash');
+const cb = require('cb');
 
-var DEFAULT_PORT = 9485;
-var DEFAULT_HOST = 'localhost';
+const TIMEOUT      = 500;
+const DEFAULT_PORT = 9485;
+const DEFAULT_HOST = 'localhost';
 
 function BaaSClient (options, done) {
   options = options || {};
