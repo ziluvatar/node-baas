@@ -64,8 +64,8 @@ BaaSPool.prototype._releaseClient = function (client) {
 ['compare', 'hash'].forEach(function (method) {
   BaaSPool.prototype[method] = function () {
     const operation = retry.operation({
-      minTimeout: 50,
-      maxTimeout: 100,
+      minTimeout: 200,
+      maxTimeout: 800,
     });
 
     const args = Array.prototype.slice.call(arguments);
@@ -74,23 +74,27 @@ BaaSPool.prototype._releaseClient = function (client) {
 
     operation.attempt(function () {
       self._getClient(function (err, client) {
-        if (operation.retry(err)) {
-          return;
-        }
-
-        if (err) {
-          return originalCallback(err && operation.mainError());
-        }
-
         function callback (err) {
           if (operation.retry(err)) {
             return;
           }
           const args = Array.prototype.slice.call(arguments);
           args[0] = err && operation.mainError();
-          self._releaseClient(client);
-          originalCallback.apply(client, args);
+          if (client) {
+            self._releaseClient(client);
+          }
+          originalCallback.apply(self, args);
         }
+
+        if (operation.retry(err)) {
+          self._releaseClient(client);
+          return;
+        }
+
+        if (err) {
+          return callback(err && operation.mainError());
+        }
+
 
         args.push(callback);
 
