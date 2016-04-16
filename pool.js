@@ -11,7 +11,7 @@ function BaaSPool (options) {
 
   this._options = _.extend({}, options.pool || {}, {
     maxConnections: 20,
-    maxRequestsPerConnection: 10
+    maxRequestsPerConnection: 100
   });
 
   this._openClients = 0;
@@ -23,7 +23,7 @@ util.inherits(BaaSPool, EventEmitter);
 
 BaaSPool.prototype._getClient = function (callback) {
   const self = this;
-  const freeClient = this._freeClients.pop();
+  const freeClient = this._freeClients.shift();
 
   if (freeClient) {
     if (freeClient._requestCount < this._options.maxRequestsPerConnection) {
@@ -75,26 +75,20 @@ BaaSPool.prototype._releaseClient = function (client) {
     operation.attempt(function () {
       self._getClient(function (err, client) {
         function callback (err) {
+          if (client) {
+            self._releaseClient(client);
+          }
           if (operation.retry(err)) {
             return;
           }
           const args = Array.prototype.slice.call(arguments);
           args[0] = err && operation.mainError();
-          if (client) {
-            self._releaseClient(client);
-          }
           originalCallback.apply(self, args);
         }
 
-        if (operation.retry(err)) {
-          self._releaseClient(client);
-          return;
-        }
-
         if (err) {
-          return callback(err && operation.mainError());
+          return callback(err);
         }
-
 
         args.push(callback);
 

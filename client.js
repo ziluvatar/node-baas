@@ -10,7 +10,7 @@ const immediate        = require('immediate');
 const _  = require('lodash');
 const cb = require('cb');
 
-const TIMEOUT      = 700;
+const TIMEOUT      = 2000;
 const DEFAULT_PORT = 9485;
 const DEFAULT_HOST = 'localhost';
 
