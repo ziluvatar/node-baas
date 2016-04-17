@@ -9,8 +9,8 @@ const immediate        = require('immediate');
 
 const _  = require('lodash');
 const cb = require('cb');
+const ms = require('ms');
 
-const TIMEOUT      = 2000;
 const DEFAULT_PORT = 9485;
 const DEFAULT_HOST = 'localhost';
 
@@ -25,8 +25,11 @@ function BaaSClient (options, done) {
     options.host = options.host || DEFAULT_HOST;
   }
   this._options = options;
-  this.connect(done);
   this._requestCount = 0;
+  if (typeof this._options.requestTimeout === 'undefined') {
+    this._options.requestTimeout = ms('2s');
+  }
+  this.connect(done);
 }
 
 util.inherits(BaaSClient, EventEmitter);
@@ -71,7 +74,7 @@ BaaSClient.prototype.hash = function (password, callback) {
 
   this._requestCount++;
 
-  callback = cb(callback).timeout(TIMEOUT);
+  callback = cb(callback).timeout(this._options.requestTimeout);
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),
@@ -105,7 +108,7 @@ BaaSClient.prototype.compare = function (params, callback) {
 
   this._requestCount++;
 
-  callback = cb(callback).timeout(TIMEOUT);
+  callback = cb(callback).timeout(this._options.requestTimeout);
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),
