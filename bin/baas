@@ -34,6 +34,16 @@ if (config.configFile) {
   }
 }
 
+
+var cluster = require('cluster');
+
+if (cluster.isMaster &&           //if is a master
+    typeof v8debug !== 'object' &&      //not in debug mode
+    process.env.NODE_ENV !== 'test') {      //not in test mode
+  var mp = require('master-process');
+  return mp.init();
+}
+
 var server = new BaaSServer(config);
 
 server.start();
