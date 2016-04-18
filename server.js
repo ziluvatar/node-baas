@@ -11,7 +11,6 @@ var randomstring = require('randomstring');
 var ResponseWriter = require('./lib/pipeline/response_writer');
 var PasswordHasher = require('./lib/pipeline/hash_password');
 var PasswordComparer = require('./lib/pipeline/compare_password');
-var ms = require('ms');
 
 var defaults = {
   port:      9485,

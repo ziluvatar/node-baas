@@ -7,4 +7,4 @@ export DIR=/opt/baas
 export PATH=$NODE_PATH:$PATH
 
 export CPU_MONITOR_FAILURES=10000000
-export WORKERS=auto
+export WORKERS=AUTO
