@@ -58,6 +58,35 @@ baas.compare({hash: 'the bcrypt hash', password: 'mypassword'}, function (err, r
 
 ```
 
+The client also support ssl:
+
+```
+var BaasClient = require('baas').Client;
+var baas = new BaasClient('server:9485');
+
+//or use a pool of five connections
+var BaasPool = require('baas').Pool;
+var baas = new BaasPool({
+  port: 9485,
+  host: 'my-baas-load-balancer',
+  protocol: 'baass'
+  pool: {
+    maxConnections: 20,
+    maxRequestsPerConnection: 10
+  }
+});
+
+//or
+var baas = new BaasPool({
+  uri: 'baass://my-baas-load-balancer',
+  pool: {
+    maxConnections: 20,
+    maxRequestsPerConnection: 10
+  }
+});
+```
+
+
 ## To install on ubuntu/debian
 
 ```
