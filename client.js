@@ -6,24 +6,49 @@ const RequestMessage   = require('./messages').Request;
 const ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
 const url              = require('url');
 const immediate        = require('immediate');
+const reconnectTls     = require('reconnect-tls');
 
-const _  = require('lodash');
 const cb = require('cb');
 const ms = require('ms');
 
-const DEFAULT_PORT = 9485;
-const DEFAULT_HOST = 'localhost';
+const DEFAULT_PROTOCOL = 'baas';
+const DEFAULT_PORT  = 9485;
+const DEFAULT_HOST  = 'localhost';
+
+const lib_map = {
+  'baas': reconnect,
+  'baass': reconnectTls
+};
+
+function parseURI (uri) {
+  var parsed = url.parse(uri);
+  return {
+    host: parsed.hostname,
+    port: parseInt(parsed.port || DEFAULT_PORT, 10),
+    protocol: parsed.protocol.slice(0, -1)
+  };
+}
 
 function BaaSClient (options, done) {
   options = options || {};
   EventEmitter.call(this);
+
   if (typeof options === 'string') {
-    options = _.pick(url.parse(options), ['port', 'hostname']);
-    options.port = parseInt(options.port || DEFAULT_PORT, 10);
+    options = parseURI(options);
+  } else if (options.uri || options.url) {
+    options = parseURI(options.uri || options.url);
   } else {
+    options.protocol = options.protocol || DEFAULT_PROTOCOL;
     options.port = options.port || DEFAULT_PORT;
     options.host = options.host || DEFAULT_HOST;
   }
+
+  this._socketLib = lib_map[options.protocol];
+
+  if (!this._socketLib) {
+    throw new Error('unknown protocol ' + options.protocol);
+  }
+
   this._options = options;
   this._requestCount = 0;
   if (typeof this._options.requestTimeout === 'undefined') {
@@ -38,7 +63,7 @@ BaaSClient.prototype.connect = function (done) {
   var options = this._options;
   var client = this;
 
-  this.socket = reconnect(function (stream) {
+  this.socket = this._socketLib(function (stream) {
 
     stream.pipe(ResponseDecoder()).on('data', function (response) {
       client.emit('response', response);
@@ -56,7 +81,9 @@ BaaSClient.prototype.connect = function (done) {
     client.emit('close', has_error);
   }).on('error', function (err) {
     client.emit('error', err);
-  }).connect(options.port, options.address || options.hostname || options.host);
+  }).connect(options.port, options.address || options.hostname || options.host, {
+    rejectUnauthorized: options.rejectUnauthorized
+  });
 };
 
 BaaSClient.prototype.hash = function (password, callback) {

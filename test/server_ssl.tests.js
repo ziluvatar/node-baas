@@ -1,11 +1,13 @@
-var BaaSServer = require('..').Server;
-var BaaSClient = require('..').Client;
+const BaaSServer = require('..').Server;
+const BaaSClient = require('..').Client;
 
-var assert = require('chai').assert;
+const assert = require('chai').assert;
+const bcrypt = require('bcrypt');
+const ssl_tunnel = require('./util/ssl_tunnel');
+
 var client;
-var bcrypt = require('bcrypt');
 
-describe('baas server', function () {
+describe('baas server (ssl)', function () {
 
   var server;
 
@@ -14,8 +16,11 @@ describe('baas server', function () {
 
     server.start(function (err, address) {
       if (err) return done(err);
-      client = new BaaSClient(address);
-      client.once('connect', done);
+      ssl_tunnel(9002, address, function (err, address) {
+        if (err) return done(err);
+        client = new BaaSClient({port: address.port, protocol: 'baass', rejectUnauthorized: false});
+        client.once('connect', done);
+      });
     });
   });
 
@@ -27,6 +32,11 @@ describe('baas server', function () {
     if (Date.unfix) { Date.unfix(); }
   });
 
+  it('should throw an error on invalid protocol', function () {
+    assert.throws(function () {
+      new BaaSClient({port: 900, protocol: 'baasxxxsa', rejectUnauthorized: false});
+    }, /unknown protocol/);
+  });
 
   it('should be able to hash a password', function (done) {
     var password = 'foobar';
