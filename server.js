@@ -1,21 +1,27 @@
-var EventEmitter = require('events').EventEmitter;
+const EventEmitter = require('events').EventEmitter;
 
-var util   = require('util');
-var logger = require('./lib/logger');
-var _      = require('lodash');
-var net = require('net');
+const util   = require('util');
+const logger = require('./lib/logger');
+const _      = require('lodash');
+const net = require('net');
 
-var RequestDecoder = require('./messages/decoders').RequestDecoder;
-var randomstring = require('randomstring');
+const RequestDecoder = require('./messages/decoders').RequestDecoder;
+const randomstring = require('randomstring');
 
-var ResponseWriter = require('./lib/pipeline/response_writer');
-var PasswordHasher = require('./lib/pipeline/hash_password');
-var PasswordComparer = require('./lib/pipeline/compare_password');
+const ResponseWriter = require('./lib/pipeline/response_writer');
+const PasswordHasher = require('./lib/pipeline/hash_password');
+const PasswordComparer = require('./lib/pipeline/compare_password');
 
-var defaults = {
+const defaults = {
   port:      9485,
   hostname:  '0.0.0.0',
-  logLevel: 'info'
+  logLevel: 'info',
+  metrics: {
+    gauge:     _.noop,
+    increment: _.noop,
+    histogram: _.noop,
+    flush:     _.noop
+  }
 };
 
 /*
@@ -30,12 +36,12 @@ var defaults = {
  */
 function BaaSServer (options) {
   EventEmitter.call(this);
-  var self = this;
+  const self = this;
 
   this._config = _.extend({}, defaults, options);
   this._logger = logger(this._config.logLevel);
   this._server = net.createServer(this._handler.bind(this));
-  this._metrics = options.metrics;
+  this._metrics = this._config.metrics;
   this._server.on('error', function (err) {
     self.emit('error', err);
   });
@@ -44,18 +50,18 @@ function BaaSServer (options) {
 util.inherits(BaaSServer, EventEmitter);
 
 BaaSServer.prototype._handler = function (socket) {
-  if (this._metrics) {
-    this._metrics.increment('requests.incoming');
-  }
+  const self = this;
 
-  var sockets_details = _.pick(socket, ['remoteAddress', 'remotePort']);
+  self._metrics.increment('connection.incoming');
+
+  const sockets_details = _.pick(socket, ['remoteAddress', 'remotePort']);
 
   sockets_details.connection = socket._connection_id = randomstring.generate(5);
 
-  var log = this._logger;
-
+  const log = self._logger;
 
   socket.on('error', function (err) {
+    self._metrics.increment('connection.error');
     log.info(_.extend(sockets_details, {
       err: {
         code:    err.code,
@@ -63,12 +69,13 @@ BaaSServer.prototype._handler = function (socket) {
       }
     }), 'connection error');
   }).on('close', function () {
+    self._metrics.increment('connection.closed');
     log.debug(sockets_details, 'connection closed');
   });
 
   log.debug(sockets_details, 'connection accepted');
 
-  var decoder = RequestDecoder();
+  const decoder = RequestDecoder();
 
   decoder.on('error', function () {
     log.info(sockets_details, 'unknown message format');
@@ -78,13 +85,13 @@ BaaSServer.prototype._handler = function (socket) {
   socket.pipe(decoder)
         .pipe(PasswordHasher(this._config, socket, log))
         .pipe(PasswordComparer(this._config, socket, log))
-        .pipe(ResponseWriter(this._metrics))
+        .pipe(ResponseWriter())
         .pipe(socket);
 };
 
 BaaSServer.prototype.start = function (done) {
-  var self = this;
-  var log = self._logger;
+  const self = this;
+  const log = self._logger;
 
   self._server.listen(this._config.port, this._config.hostname, function(err) {
     if (err) {
@@ -96,7 +103,7 @@ BaaSServer.prototype.start = function (done) {
       return;
     }
 
-    var address = self._server.address();
+    const address = self._server.address();
 
     log.info(address, 'server started');
 
@@ -110,9 +117,9 @@ BaaSServer.prototype.start = function (done) {
 };
 
 BaaSServer.prototype.stop = function () {
-  var self = this;
-  var log = self._logger;
-  var address = self._server.address();
+  const self = this;
+  const log = self._logger;
+  const address = self._server.address();
 
   this._server.close(function() {
     log.debug(address, 'server closed');
