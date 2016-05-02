@@ -45,6 +45,12 @@ BaaSPool.prototype._getClient = function (callback) {
     if (err) {
       return callback(err);
     }
+
+    newClient.once('error', function () {
+      self._openClients--;
+      _.pull(self._freeClients, newClient);
+    });
+
     setImmediate(callback, null, newClient);
   });
 };
