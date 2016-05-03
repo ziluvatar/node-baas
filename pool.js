@@ -46,10 +46,8 @@ BaaSPool.prototype._getClient = function (callback) {
       return callback(err);
     }
 
-    newClient.once('error', function () {
-      // do nothing.
-      // the client will be reconnected.
-    });
+    // do nothing, the client will be reconnected eventually.
+    newClient.on('error', _.noop);
 
     setImmediate(callback, null, newClient);
   });
