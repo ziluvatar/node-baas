@@ -5,7 +5,6 @@ const reconnect        = require('reconnect-net');
 const RequestMessage   = require('./messages').Request;
 const ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
 const url              = require('url');
-const immediate        = require('immediate');
 const reconnectTls     = require('reconnect-tls');
 
 const cb = require('cb');
@@ -88,15 +87,15 @@ BaaSClient.prototype.connect = function (done) {
 
 BaaSClient.prototype.hash = function (password, callback) {
   if (!password) {
-    return immediate(callback, new Error('password is required'));
+    return setImmediate(callback, new Error('password is required'));
   }
 
   if (!callback) {
-    return immediate(callback, new Error('callback is required'));
+    return setImmediate(callback, new Error('callback is required'));
   }
 
   if (!this.stream || !this.stream.writable) {
-    return immediate(callback, new Error('The socket is closed.'));
+    return setImmediate(callback, new Error('The socket is closed.'));
   }
 
   this._requestCount++;
@@ -118,19 +117,19 @@ BaaSClient.prototype.hash = function (password, callback) {
 
 BaaSClient.prototype.compare = function (params, callback) {
   if (!params.password) {
-    return immediate(callback, new Error('password is required'));
+    return setImmediate(callback, new Error('password is required'));
   }
 
   if (!params.hash) {
-    return immediate(callback, new Error('hash is required'));
+    return setImmediate(callback, new Error('hash is required'));
   }
 
   if (!callback) {
-    return immediate(callback, new Error('callback is required'));
+    return setImmediate(callback, new Error('callback is required'));
   }
 
   if (!this.stream || !this.stream.writable) {
-    return immediate(callback, new Error('The socket is closed.'));
+    return setImmediate(callback, new Error('The socket is closed.'));
   }
 
   this._requestCount++;
