@@ -47,8 +47,8 @@ BaaSPool.prototype._getClient = function (callback) {
     }
 
     newClient.once('error', function () {
-      self._openClients--;
-      _.pull(self._freeClients, newClient);
+      // do nothing.
+      // the client will be reconnected.
     });
 
     setImmediate(callback, null, newClient);
