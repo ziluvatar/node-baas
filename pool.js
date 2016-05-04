@@ -23,6 +23,17 @@ util.inherits(BaaSPool, EventEmitter);
 
 BaaSPool.prototype._getClient = function (callback) {
   const self = this;
+
+  //realease death clients
+  var clients_to_kill = this._freeClients.filter(function (client) {
+    return !client.stream || !client.stream.writable;
+  });
+
+  clients_to_kill.forEach(function (client) {
+    self._killClient(client);
+  });
+  ////
+
   const freeClient = this._freeClients.shift();
 
   if (freeClient) {
@@ -53,6 +64,13 @@ BaaSPool.prototype._getClient = function (callback) {
   });
 };
 
+BaaSPool.prototype._killClient = function (client) {
+  const self = this;
+  _.pull(self._freeClients, client);
+  self._openClients--;
+  client.disconnect();
+};
+
 BaaSPool.prototype._releaseClient = function (client) {
   const self = this;
 
@@ -68,8 +86,10 @@ BaaSPool.prototype._releaseClient = function (client) {
 ['compare', 'hash'].forEach(function (method) {
   BaaSPool.prototype[method] = function () {
     const operation = retry.operation({
-      minTimeout: 200,
-      maxTimeout: 800,
+      retries:    15,
+      randomize:  false,
+      minTimeout: 300,
+      maxTimeout: 2000,
     });
 
     const args = Array.prototype.slice.call(arguments);
@@ -80,7 +100,11 @@ BaaSPool.prototype._releaseClient = function (client) {
       self._getClient(function (err, client) {
         function callback (err) {
           if (client) {
-            self._releaseClient(client);
+            if (err) {
+              self._killClient(client);
+            } else {
+              self._releaseClient(client);
+            }
           }
           if (operation.retry(err)) {
             return;
