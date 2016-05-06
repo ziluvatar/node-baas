@@ -9,10 +9,10 @@ function BaaSPool (options) {
 
   this._connectionOptions = _.omit(options, ['pool']);
 
-  this._options = _.extend({}, options.pool || {}, {
+  this._options = _.extend({
     maxConnections: 20,
     maxRequestsPerConnection: 100
-  });
+  }, options.pool || {});
 
   this._openClients = 0;
   this._freeClients = [];
