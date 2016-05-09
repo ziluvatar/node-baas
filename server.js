@@ -1,3 +1,5 @@
+const cluster = require('cluster');
+
 const EventEmitter = require('events').EventEmitter;
 
 const util   = require('util');
@@ -9,8 +11,9 @@ const RequestDecoder = require('./messages/decoders').RequestDecoder;
 const randomstring = require('randomstring');
 
 const ResponseWriter = require('./lib/pipeline/response_writer');
-const PasswordHasher = require('./lib/pipeline/hash_password');
-const PasswordComparer = require('./lib/pipeline/compare_password');
+const through2 = require('through2');
+const Response       = require('./messages').Response;
+
 
 const defaults = {
   port:      9485,
@@ -23,6 +26,36 @@ const defaults = {
     flush:     _.noop
   }
 };
+
+cluster.setupMaster({
+  exec: __dirname + '/worker.js'
+});
+
+function fork_worker() {
+  const worker = cluster.fork();
+
+  worker._pendingRequests = new Map();
+
+  worker.on('message', function (response) {
+    var callback = worker._pendingRequests.get(response.request_id);
+    worker._pendingRequests.delete(response.id);
+    return callback(null, response);
+  });
+
+  worker.sendRequest = function (message, callback) {
+    worker._pendingRequests.set(message.id, callback);
+    worker.send(message);
+  };
+
+  return worker;
+}
+
+const workers_number = typeof process.env.WORKERS === 'undefined' ||
+                        process.env.WORKERS === 'AUTO' ?
+                        Math.max(require('os').cpus().length - 1, 1) :
+                        parseInt(process.env.WORKERS);
+
+const workers = _.range(workers_number).map(fork_worker);
 
 /*
  * Creates an instance of BaaSServer.
@@ -83,8 +116,13 @@ BaaSServer.prototype._handler = function (socket) {
   });
 
   socket.pipe(decoder)
-        .pipe(PasswordHasher(this._config, socket, log))
-        .pipe(PasswordComparer(this._config, socket, log))
+        .pipe(through2.obj((request, encoding, callback) => {
+          const worker = workers.shift();
+          workers.push(worker);
+          worker.sendRequest(request, (err, response) => {
+            callback(null, new Response(response));
+          });
+        }))
         .pipe(ResponseWriter())
         .pipe(socket);
 };

@@ -79,6 +79,9 @@ BaaSClient.prototype.connect = function (done) {
   }).on('close', function (has_error) {
     client.emit('close', has_error);
   }).on('error', function (err) {
+    if (err === 'DEPTH_ZERO_SELF_SIGNED_CERT' && options.rejectUnauthorized === false) {
+      return;
+    }
     client.emit('error', err);
   }).connect(options.port, options.address || options.hostname || options.host, {
     rejectUnauthorized: options.rejectUnauthorized
