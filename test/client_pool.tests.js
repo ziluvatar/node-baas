@@ -5,7 +5,7 @@ var assert = require('chai').assert;
 var client;
 var bcrypt = require('bcrypt');
 
-describe('client pool server', function () {
+describe('pool client', function () {
 
   var server;
 

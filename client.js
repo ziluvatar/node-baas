@@ -9,6 +9,7 @@ const reconnectTls     = require('reconnect-tls');
 
 const cb = require('cb');
 const ms = require('ms');
+const _  = require('lodash');
 
 const DEFAULT_PROTOCOL = 'baas';
 const DEFAULT_PORT  = 9485;
@@ -35,7 +36,7 @@ function BaaSClient (options, done) {
   if (typeof options === 'string') {
     options = parseURI(options);
   } else if (options.uri || options.url) {
-    options = parseURI(options.uri || options.url);
+    options = _.extend(options, parseURI(options.uri || options.url));
   } else {
     options.protocol = options.protocol || DEFAULT_PROTOCOL;
     options.port = options.port || DEFAULT_PORT;
@@ -50,9 +51,11 @@ function BaaSClient (options, done) {
 
   this._options = options;
   this._requestCount = 0;
+
   if (typeof this._options.requestTimeout === 'undefined') {
     this._options.requestTimeout = ms('2s');
   }
+
   this.connect(done);
 }
 
@@ -73,9 +76,6 @@ BaaSClient.prototype.connect = function (done) {
     client.emit('ready');
   }).once('connect', function () {
     client.emit('connect');
-    if (done) {
-      done();
-    }
   }).on('close', function (has_error) {
     client.emit('close', has_error);
   }).on('error', function (err) {
@@ -86,6 +86,8 @@ BaaSClient.prototype.connect = function (done) {
   }).connect(options.port, options.address || options.hostname || options.host, {
     rejectUnauthorized: options.rejectUnauthorized
   });
+
+  client.once('ready', done || _.noop);
 };
 
 BaaSClient.prototype.hash = function (password, callback) {

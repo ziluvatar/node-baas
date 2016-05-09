@@ -118,9 +118,17 @@ BaaSServer.prototype._handler = function (socket) {
   socket.pipe(decoder)
         .pipe(through2.obj((request, encoding, callback) => {
           const worker = workers.shift();
+          const operation = request.operation === 0 ? 'compare' : 'hash';
+          const start = new Date();
+
+          self._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
+
           worker.sendRequest(request, (err, response) => {
+            self._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
+            self._metrics.increment(`requests.processed.${operation}`);
             callback(null, new Response(response));
           });
+
           workers.push(worker);
         }))
         .pipe(ResponseWriter())

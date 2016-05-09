@@ -11,12 +11,10 @@ function BaaSPool (options) {
 
   this._options = _.extend({
     maxConnections: 20,
-    maxRequestsPerConnection: 100
+    maxRequestsPerConnection: 10000
   }, options.pool || {});
 
-  this._openClients = 0;
-  this._freeClients = [];
-  this._queuedRequests = [];
+  this._clients = [];
 }
 
 util.inherits(BaaSPool, EventEmitter);
@@ -24,63 +22,29 @@ util.inherits(BaaSPool, EventEmitter);
 BaaSPool.prototype._getClient = function (callback) {
   const self = this;
 
-  //realease death clients
-  var clients_to_kill = this._freeClients.filter(function (client) {
-    return !client.stream || !client.stream.writable;
-  });
+  self._clients
+      .filter(c => c._requests >= self._options.maxRequestsPerConnection || (c.stream && !c.stream.writable))
+      .forEach(c => self._killClient(c));
 
-  clients_to_kill.forEach(function (client) {
-    self._killClient(client);
-  });
-  ////
-
-  const freeClient = this._freeClients.shift();
-
-  if (freeClient) {
-    if (freeClient._requestCount < this._options.maxRequestsPerConnection) {
-      return setImmediate(callback, null, freeClient);
-    }
-
-    self._openClients--;
-    freeClient.disconnect();
-  }
-
-  if (self._openClients === self._options.maxConnections) {
-    this._queuedRequests.push(callback);
+  if (self._clients.length < self._options.maxConnections) {
+    const newClient = new BaaSClient(this._connectionOptions, function () {
+      newClient._requests = 1;
+      callback(null, newClient);
+    });
+    self._clients.push(newClient);
     return;
   }
 
-  //going to create a new client
-  self._openClients++;
-  const newClient = new BaaSClient(this._connectionOptions, function (err) {
-    if (err) {
-      return callback(err);
-    }
-
-    // do nothing, the client will be reconnected eventually.
-    newClient.on('error', _.noop);
-
-    setImmediate(callback, null, newClient);
-  });
+  const client = self._clients.shift();
+  client._requests++;
+  self._clients.push(client);
+  return setImmediate(callback, null, client);
 };
 
 BaaSPool.prototype._killClient = function (client) {
   const self = this;
-  _.pull(self._freeClients, client);
-  self._openClients--;
+  _.pull(self._clients, client);
   client.disconnect();
-};
-
-BaaSPool.prototype._releaseClient = function (client) {
-  const self = this;
-
-  self._freeClients.push(client);
-
-  var queued = self._queuedRequests.pop();
-
-  if (queued) {
-    self._getClient(queued);
-  }
 };
 
 ['compare', 'hash'].forEach(function (method) {
@@ -99,13 +63,6 @@ BaaSPool.prototype._releaseClient = function (client) {
     operation.attempt(function () {
       self._getClient(function (err, client) {
         function callback (err) {
-          if (client) {
-            if (err) {
-              self._killClient(client);
-            } else {
-              self._releaseClient(client);
-            }
-          }
           if (operation.retry(err)) {
             return;
           }
