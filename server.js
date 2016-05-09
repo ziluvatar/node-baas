@@ -124,6 +124,14 @@ BaaSServer.prototype._handler = function (socket) {
           self._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
 
           worker.sendRequest(request, (err, response) => {
+            log.info({
+              request:    request.id,
+              connection: socket._connection_id,
+              took:       new Date() - start,
+              worker:     worker.id,
+              operation:  operation
+            }, `${operation} completed`);
+
             self._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
             self._metrics.increment(`requests.processed.${operation}`);
             callback(null, new Response(response));
