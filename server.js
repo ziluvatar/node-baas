@@ -118,10 +118,10 @@ BaaSServer.prototype._handler = function (socket) {
   socket.pipe(decoder)
         .pipe(through2.obj((request, encoding, callback) => {
           const worker = workers.shift();
-          workers.push(worker);
           worker.sendRequest(request, (err, response) => {
             callback(null, new Response(response));
           });
+          workers.push(worker);
         }))
         .pipe(ResponseWriter())
         .pipe(socket);
