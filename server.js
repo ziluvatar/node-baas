@@ -27,10 +27,6 @@ const defaults = {
   }
 };
 
-cluster.setupMaster({
-  exec: __dirname + '/worker.js'
-});
-
 function fork_worker() {
   const worker = cluster.fork();
 
@@ -49,13 +45,6 @@ function fork_worker() {
 
   return worker;
 }
-
-const workers_number = typeof process.env.WORKERS === 'undefined' ||
-                        process.env.WORKERS === 'AUTO' ?
-                        Math.max(require('os').cpus().length - 1, 1) :
-                        parseInt(process.env.WORKERS);
-
-const workers = _.range(workers_number).map(fork_worker);
 
 /*
  * Creates an instance of BaaSServer.
@@ -78,6 +67,20 @@ function BaaSServer (options) {
   this._server.on('error', function (err) {
     self.emit('error', err);
   });
+
+
+  cluster.setupMaster({
+    exec: __dirname + '/worker.js'
+  });
+
+  const workers_number = typeof process.env.WORKERS === 'undefined' ||
+                          process.env.WORKERS === 'AUTO' ?
+                          Math.max(require('os').cpus().length - 1, 1) :
+                          parseInt(process.env.WORKERS);
+
+  this._workers = _.range(workers_number).map(fork_worker);
+
+
 }
 
 util.inherits(BaaSServer, EventEmitter);
@@ -117,7 +120,7 @@ BaaSServer.prototype._handler = function (socket) {
 
   socket.pipe(decoder)
         .pipe(through2.obj((request, encoding, callback) => {
-          const worker = workers.shift();
+          const worker = self._workers.shift();
           const operation = request.operation === 0 ? 'compare' : 'hash';
           const start = new Date();
 
@@ -137,7 +140,7 @@ BaaSServer.prototype._handler = function (socket) {
             callback(null, new Response(response));
           });
 
-          workers.push(worker);
+          self._workers.push(worker);
         }))
         .pipe(ResponseWriter())
         .pipe(socket);

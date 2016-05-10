@@ -33,7 +33,6 @@ BaaSPool.prototype._getClient = function (callback) {
     const newClient = new BaaSClient(this._connectionOptions, function () {
       newClient._requests = 1;
       self._clients.push(newClient);
-      console.log('client created', self._clients.length);
       var pending = self._pendingRequests;
       self._pendingRequests = [];
       pending.forEach(cb => self._getClient(cb));
