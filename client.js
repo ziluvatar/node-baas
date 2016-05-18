@@ -56,6 +56,7 @@ function BaaSClient (options, done) {
     this._options.requestTimeout = ms('2s');
   }
 
+  this._pendingRequests = 0;
   this.connect(done);
 }
 
@@ -91,6 +92,8 @@ BaaSClient.prototype.connect = function (done) {
 };
 
 BaaSClient.prototype.hash = function (password, callback) {
+  const self = this;
+
   if (!password) {
     return setImmediate(callback, new Error('password is required'));
   }
@@ -99,13 +102,13 @@ BaaSClient.prototype.hash = function (password, callback) {
     return setImmediate(callback, new Error('callback is required'));
   }
 
-  if (!this.stream || !this.stream.writable) {
+  if (!self.stream || !self.stream.writable) {
     return setImmediate(callback, new Error('The socket is closed.'));
   }
 
-  this._requestCount++;
+  self._requestCount++;
 
-  callback = cb(callback).timeout(this._options.requestTimeout);
+  callback = cb(callback).timeout(self._options.requestTimeout);
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),
@@ -113,9 +116,14 @@ BaaSClient.prototype.hash = function (password, callback) {
     'operation': RequestMessage.Operation.HASH,
   });
 
-  this.stream.write(request.encodeDelimited().toBuffer());
+  self._pendingRequests++;
+  self.stream.write(request.encodeDelimited().toBuffer());
 
-  this.once('response_' + request.id, function (response) {
+  self.once('response_' + request.id, function (response) {
+    self._pendingRequests--;
+    if (self._pendingRequests === 0) {
+      self.emit('drain');
+    }
     if (response.busy) {
       return callback(new Error('baas server is busy'));
     }
@@ -124,6 +132,8 @@ BaaSClient.prototype.hash = function (password, callback) {
 };
 
 BaaSClient.prototype.compare = function (params, callback) {
+  const self = this;
+
   if (!params.password) {
     return setImmediate(callback, new Error('password is required'));
   }
@@ -151,9 +161,15 @@ BaaSClient.prototype.compare = function (params, callback) {
     'operation': RequestMessage.Operation.COMPARE,
   });
 
-  this.stream.write(request.encodeDelimited().toBuffer());
+  self._pendingRequests++;
+  self.stream.write(request.encodeDelimited().toBuffer());
 
-  this.once('response_' + request.id, function (response) {
+  self.once('response_' + request.id, function (response) {
+    self._pendingRequests--;
+    if (self._pendingRequests === 0) {
+      self.emit('drain');
+    }
+
     if (response.busy) {
       return callback(new Error('baas server is busy'));
     }

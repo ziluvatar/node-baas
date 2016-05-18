@@ -57,7 +57,13 @@ BaaSPool.prototype._killClient = function (client) {
   const self = this;
   self._openClients--;
   _.pull(self._clients, client);
-  client.disconnect();
+  if (client._pendingRequests === 0) {
+    client.disconnect();
+  } else {
+    client.once('drain', function () {
+      client.disconnect();
+    });
+  }
 };
 
 ['compare', 'hash'].forEach(function (method) {
