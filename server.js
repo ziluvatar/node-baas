@@ -129,7 +129,6 @@ BaaSServer.prototype._handler = function (socket) {
               request:    request.id,
               connection: socket._connection_id,
               took:       new Date() - start,
-              worker:     worker.id,
               operation:  operation
             }, `${operation} not done - server is busy`);
 
