@@ -124,6 +124,22 @@ BaaSServer.prototype._handler = function (socket) {
           const operation = request.operation === 0 ? 'compare' : 'hash';
           const start = new Date();
 
+          if (!worker) {
+            log.info({
+              request:    request.id,
+              connection: socket._connection_id,
+              took:       new Date() - start,
+              worker:     worker.id,
+              operation:  operation
+            }, `${operation} not done - server is busy`);
+
+            return  callback(null, new Response({
+              request_id: request.id,
+              success:    false,
+              busy:       true
+            }));
+          }
+
           self._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
 
           worker.sendRequest(request, (err, response) => {
@@ -137,10 +153,10 @@ BaaSServer.prototype._handler = function (socket) {
 
             self._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
             self._metrics.increment(`requests.processed.${operation}`);
+            self._workers.push(worker);
             callback(null, new Response(response));
           });
 
-          self._workers.push(worker);
         }))
         .pipe(ResponseWriter())
         .pipe(socket);

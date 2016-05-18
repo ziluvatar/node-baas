@@ -116,6 +116,9 @@ BaaSClient.prototype.hash = function (password, callback) {
   this.stream.write(request.encodeDelimited().toBuffer());
 
   this.once('response_' + request.id, function (response) {
+    if (response.busy) {
+      return callback(new Error('baas server is busy'));
+    }
     callback(null, { hash: response.hash });
   });
 };
@@ -151,6 +154,9 @@ BaaSClient.prototype.compare = function (params, callback) {
   this.stream.write(request.encodeDelimited().toBuffer());
 
   this.once('response_' + request.id, function (response) {
+    if (response.busy) {
+      return callback(new Error('baas server is busy'));
+    }
     callback(null, { success: response.success });
   });
 };

@@ -4,4 +4,8 @@ message Response {
   required string request_id = 1;
   optional bool success = 2;
   optional string hash = 3;
+
+  //Indicates that the server is busy,
+  //try another connection.
+  optional bool busy = 4;
 }
