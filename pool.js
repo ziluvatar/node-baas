@@ -69,10 +69,10 @@ BaaSPool.prototype._killClient = function (client) {
 ['compare', 'hash'].forEach(function (method) {
   BaaSPool.prototype[method] = function () {
     const operation = retry.operation({
-      retries:    15,
+      retries:    20,
       randomize:  false,
-      minTimeout: 300,
-      maxTimeout: 2000,
+      minTimeout: 30,
+      maxTimeout: 200,
     });
 
     const args = Array.prototype.slice.call(arguments);
