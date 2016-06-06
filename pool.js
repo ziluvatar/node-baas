@@ -25,19 +25,23 @@ BaaSPool.prototype._getClient = function (callback) {
   const self = this;
 
   self._clients
-      .filter(c => c._requests >= self._options.maxRequestsPerConnection || (c.stream && !c.stream.writable))
+      .filter(c => c._requestCount >= self._options.maxRequestsPerConnection || (c.stream && !c.stream.writable))
       .forEach(c => self._killClient(c));
 
   if (self._openClients < self._options.maxConnections) {
     self._openClients++;
     const newClient = new BaaSClient(this._connectionOptions, function () {
-      newClient._requests = 1;
       self._clients.push(newClient);
       var pending = self._pendingRequests;
       self._pendingRequests = [];
       pending.forEach(cb => self._getClient(cb));
       callback(null, newClient);
     });
+
+    newClient.on('error', function () {
+      self._killClient(newClient);
+    });
+
     return;
   }
 
@@ -48,7 +52,6 @@ BaaSPool.prototype._getClient = function (callback) {
     return;
   }
 
-  client._requests++;
   self._clients.push(client);
   return setImmediate(callback, null, client);
 };
@@ -57,6 +60,14 @@ BaaSPool.prototype._killClient = function (client) {
   const self = this;
   self._openClients--;
   _.pull(self._clients, client);
+
+  if (client.socket) {
+    client.socket.reconnect = false;
+    if (!client.socket.connected) {
+      return;
+    }
+  }
+
   if (client._pendingRequests === 0) {
     client.disconnect();
   } else {
