@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
-var program = require('commander');
-var path = require('path');
-var fs = require('fs');
-var yaml = require('js-yaml');
-var _ = require('lodash');
-
-var BaaSServer = require('../server');
+const program    = require('commander');
+const path       = require('path');
+const fs         = require('fs');
+const yaml       = require('js-yaml');
+const _          = require('lodash');
+const BaaSServer = require('../server');
 
 program.version(require('../package').version)
   .option('-p --port [9485]', 'Port to bind [9485].', '9485')
@@ -45,5 +44,16 @@ process.on('SIGTERM', function () {
   setTimeout(function () {
     process.exit(0);
   });
+}).on('SIGUSR2', function () {
+  const v8Profiler = require('v8-profiler');
+  const path = `/tmp/baas-heap-${Math.round(new Date().getTime() / 1000)}.heapsnapshot`;
+  const snapshot = v8Profiler.takeSnapshot();
+
+  snapshot.export()
+    .pipe(fs.createWriteStream(path))
+    .on('finish', function () {
+      console.log(`snapshot stored in ${path}`);
+      snapshot.delete();
+    });
 });
 
