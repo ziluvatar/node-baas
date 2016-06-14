@@ -32,6 +32,11 @@ fi
 # Delete the files if they exists
 rm $file_default.postinst $file_init.postinst 2> /dev/null || true
 
+if [ -f /etc/cron.daily/logrotate ] 
+then
+	mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
+fi
+	
 # Copy logrotate script
 cp /opt/$NAME/debian/$NAME-logs /etc/logrotate.d/
 
