@@ -38,5 +38,5 @@ then
 fi
 	
 # Copy logrotate script
-cp /opt/$NAME/debian/$NAME-logs /etc/logrotate.d/
+cp /opt/auth0/$NAME/debian/$NAME-logs /etc/logrotate.d/
 
