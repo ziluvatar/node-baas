@@ -1,21 +1,26 @@
-var BaaSServer = require('..').Server;
-var BaaSClient = require('..').Client;
+const BaaSServer = require('..').Server;
+const BaaSClient = require('..').Client;
 
-var assert = require('chai').assert;
+const assert = require('chai').assert;
+const bcrypt = require('bcrypt');
+const freeport = require('freeport');
+
 var client;
-var bcrypt = require('bcrypt');
-
 describe('baas server', function () {
 
   var server;
 
   before(function (done) {
-    server = new BaaSServer({ port: 9001, logLevel: 'error' });
+    freeport(function (err, port) {
+      if (err) { return done(err); }
 
-    server.start(function (err, address) {
-      if (err) return done(err);
-      client = new BaaSClient(address);
-      client.once('connect', done);
+      server = new BaaSServer({ port, logLevel: 'error' });
+
+      server.start(function (err, address) {
+        if (err) return done(err);
+        client = new BaaSClient(address);
+        client.once('connect', done);
+      });
     });
   });
 

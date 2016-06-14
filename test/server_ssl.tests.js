@@ -4,6 +4,7 @@ const BaaSClient = require('..').Client;
 const assert = require('chai').assert;
 const bcrypt = require('bcrypt');
 const ssl_tunnel = require('./util/ssl_tunnel');
+const freeport = require('freeport');
 
 var client;
 
@@ -12,14 +13,17 @@ describe('baas server (ssl)', function () {
   var server;
 
   before(function (done) {
-    server = new BaaSServer({ port: 9001, logLevel: 'error' });
+    freeport(function (err, port) {
+      if (err) { return done(err); }
+      server = new BaaSServer({ port, logLevel: 'error' });
 
-    server.start(function (err, address) {
-      if (err) return done(err);
-      ssl_tunnel(9002, address, function (err, address) {
+      server.start(function (err, address) {
         if (err) return done(err);
-        client = new BaaSClient({port: address.port, protocol: 'baass', rejectUnauthorized: false});
-        client.once('connect', done);
+        ssl_tunnel(9002, address, function (err, address) {
+          if (err) return done(err);
+          client = new BaaSClient({port: address.port, protocol: 'baass', rejectUnauthorized: false});
+          client.once('connect', done);
+        });
       });
     });
   });

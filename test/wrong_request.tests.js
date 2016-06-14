@@ -1,18 +1,20 @@
-var BaaSServer = require('..').Server;
-
-var Socket = require('net').Socket;
+const BaaSServer = require('..').Server;
+const Socket = require('net').Socket;
+const freeport = require('freeport');
 
 describe('wrong requests', function () {
   var server, address;
 
   before(function (done) {
+    freeport(function(err, port) {
+      if (err) { return done(err); }
+      server = new BaaSServer({logLevel: 'error', port});
 
-    server = new BaaSServer({logLevel: 'error'});
-
-    server.start(function (err, addr) {
-      if (err) return done(err);
-      address = addr;
-      done();
+      server.start(function (err, addr) {
+        if (err) return done(err);
+        address = addr;
+        done();
+      });
     });
   });
 

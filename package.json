@@ -44,6 +44,7 @@
   },
   "devDependencies": {
     "chai": "~1.10.0",
+    "freeport": "~1.0.5",
     "mocha": "~2.1.0",
     "selfsigned": "~1.8.0"
   }
