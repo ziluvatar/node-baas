@@ -34,7 +34,7 @@ function fork_worker() {
 
   worker.on('message', function (response) {
     var callback = worker._pendingRequests.get(response.request_id);
-    worker._pendingRequests.delete(response.id);
+    worker._pendingRequests.delete(response.request_id);
     return callback(null, response);
   });
 
