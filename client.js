@@ -91,8 +91,13 @@ BaaSClient.prototype.connect = function (done) {
   client.once('ready', done || _.noop);
 };
 
-BaaSClient.prototype.hash = function (password, callback) {
+BaaSClient.prototype.hash = function (password, salt, callback) {
   const self = this;
+
+  //salt is keep for api-level compatibility with node-bcrypt
+  if (typeof salt === 'function') {
+    callback = salt;
+  }
 
   if (!password) {
     return setImmediate(callback, new Error('password is required'));
@@ -127,18 +132,18 @@ BaaSClient.prototype.hash = function (password, callback) {
     if (response.busy) {
       return callback(new Error('baas server is busy'));
     }
-    callback(null, { hash: response.hash });
+    callback(null, response.hash);
   });
 };
 
-BaaSClient.prototype.compare = function (params, callback) {
+BaaSClient.prototype.compare = function (password, hash, callback) {
   const self = this;
 
-  if (!params.password) {
+  if (!password) {
     return setImmediate(callback, new Error('password is required'));
   }
 
-  if (!params.hash) {
+  if (!hash) {
     return setImmediate(callback, new Error('hash is required'));
   }
 
@@ -156,8 +161,8 @@ BaaSClient.prototype.compare = function (params, callback) {
 
   var request = new RequestMessage({
     'id':        randomstring.generate(7),
-    'password':  params.password,
-    'hash':      params.hash,
+    'password':  password,
+    'hash':      hash,
     'operation': RequestMessage.Operation.COMPARE,
   });
 
@@ -173,7 +178,7 @@ BaaSClient.prototype.compare = function (params, callback) {
     if (response.busy) {
       return callback(new Error('baas server is busy'));
     }
-    callback(null, { success: response.success });
+    callback(null, response.success);
   });
 };
 

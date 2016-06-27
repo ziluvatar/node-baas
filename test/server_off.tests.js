@@ -1,4 +1,4 @@
-var BaaSClient = require('..').Client;
+var BaaSClient = require('../client');
 var assert = require('chai').assert;
 
 

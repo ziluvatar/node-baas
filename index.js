@@ -1,3 +1,2 @@
-exports.Client = require('./client');
-exports.Pool = require('./pool');
+exports.Client = require('./pool');
 exports.Server = require('./server');

@@ -1,5 +1,5 @@
 const BaaSServer = require('..').Server;
-const BaaSClient = require('..').Client;
+const BaaSClient = require('../client');
 
 const assert = require('chai').assert;
 const bcrypt = require('bcrypt');
@@ -35,9 +35,9 @@ describe('baas server', function () {
 
   it('should be able to hash a password', function (done) {
     var password = 'foobar';
-    client.hash(password, function (err, response) {
+    client.hash(password, function (err, hash) {
       if (err) return done(err);
-      assert.ok(bcrypt.compareSync(password, response.hash));
+      assert.ok(bcrypt.compareSync(password, hash));
       done();
     });
   });
@@ -45,12 +45,9 @@ describe('baas server', function () {
   it('should be able to compare a password and return ok', function (done) {
     var password = 'foobar';
     var hash = bcrypt.hashSync(password, 10);
-    client.compare({
-      password: password,
-      hash: hash
-    }, function (err, response) {
+    client.compare(password, hash, function (err, success) {
       if (err) return done(err);
-      assert.ok(response.success);
+      assert.ok(success);
       done();
     });
   });

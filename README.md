@@ -19,7 +19,13 @@ Start a baas server on port 9485 and salt with 10 iterations:
 baas -p 9485 -s 10
 ```
 
-**Important**: The server runs bcrypt synchronously (not using the node thread pool) as it is meant to be used in servers with only 1 core due as it provides the best tx/$ relationship in AWS (t2-micro). Might make sense to make this a configurable option.
+How it works?
+
+The server listen in a TCP port. The protocol buffer is defined in `/protocol`.
+
+The server start N workers by default N is the number of COREs on the system.
+
+Every request (hash or compare) is assigned to a worker. A worker can handle one operation at the time. If all workers are "busy", the server will reply the request with "SERVER IS BUSY" error to the client. The client automatically retries the request in another connection.
 
 ## Client
 
@@ -29,15 +35,12 @@ Install:
 npm i auth0/node-baas
 ```
 
-Usage
+The client keeps api-level compatibility with [node-bcrypt](https://github.com/ncb000gt/node.bcrypt.js/).
 
 ```javascript
 var BaasClient = require('baas').Client;
-var baas = new BaasClient('server:9485');
 
-//or use a pool of five connections
-var BaasPool = require('baas').Pool;
-var baas = new BaasPool({
+var baas = new BaasClient({
   port: 9485,
   host: 'my-baas-load-balancer'
   pool: {
@@ -47,26 +50,22 @@ var baas = new BaasPool({
 });
 
 //hash a password
-baas.hash('mypassword', function (err, result) {
-  console.log(result.hash)
+baas.hash('plainTextPassword', function (err, hash) {
+  console.log(hash)
 });
 
 //compare a password
-baas.compare({hash: 'the bcrypt hash', password: 'mypassword'}, function (err, result) {
-  console.log(result.success)
+baas.compare('plainTextPassword', 'bcryptHash', function (err, success) {
+  console.log(success)
 });
 
 ```
 
 The client also support ssl:
 
-```
+```javascript
 var BaasClient = require('baas').Client;
-var baas = new BaasClient('server:9485');
-
-//or use a pool of five connections
-var BaasPool = require('baas').Pool;
-var baas = new BaasPool({
+var baas = new BaasClient({
   port: 9485,
   host: 'my-baas-load-balancer',
   protocol: 'baass'
@@ -77,7 +76,7 @@ var baas = new BaasPool({
 });
 
 //or
-var baas = new BaasPool({
+var baas = new BaasClient({
   uri: 'baass://my-baas-load-balancer',
   pool: {
     maxConnections: 20,
@@ -90,13 +89,12 @@ var baas = new BaasPool({
 ## To install on ubuntu/debian
 
 ```
-
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv F63E3D3A
 sudo sh -c 'echo deb http://debs.auth0.com/ stable main > /etc/apt/sources.list.d/auth0.list'
 sudo aptitude update
 sudo aptitude install -y baas
-
 ```
+
 ## Author
 
 [Auth0](http://auth0.com)
