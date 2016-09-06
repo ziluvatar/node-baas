@@ -56,6 +56,10 @@ BaaSPool.prototype._getClient = function (callback) {
   return setImmediate(callback, null, client);
 };
 
+BaaSPool.prototype.disconnect = function () {
+  this._clients.forEach(c => this._killClient(c));
+};
+
 BaaSPool.prototype._killClient = function (client) {
   const self = this;
   self._openClients--;
