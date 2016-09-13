@@ -6,6 +6,8 @@ const fs         = require('fs');
 const yaml       = require('js-yaml');
 const _          = require('lodash');
 const BaaSServer = require('../server');
+const bunyan     = require('bunyan');
+var agent        = require('auth0-instrumentation');
 
 program.version(require('../package').version)
   .option('-p --port [9485]', 'Port to bind [9485].', '9485')
@@ -15,13 +17,7 @@ program.version(require('../package').version)
   .option('-c --config-file <file>', 'Configuration file.')
   .parse(process.argv);
 
-//I don't like this
-var agent  = require('auth0-instrumentation');
-var pkg    = require('../package.json');
-agent.init(pkg, process.env);
-
 var config = _.pick(program, ['salt', 'port', 'hostname', 'configFile', 'logLevel']);
-config.metrics = agent.metrics;
 
 if (config.configFile) {
   try {
@@ -33,6 +29,17 @@ if (config.configFile) {
   }
 }
 
+agent.init({ name: 'baas' }, {
+  METRICS_API_KEY: process.env.METRICS_API_KEY || config.metricsApiKey,
+  ERROR_REPORTER_URL: process.env.ERROR_REPORTER_URL || config.errorReporterUrl,
+  LOG_LEVEL: process.env.LOG_LEVEL || config.logLevel,
+  KINESIS_POOL: process.env.KINESIS_POOL || config.kinesisPool,
+  LOG_TO_KINESIS_LEVEL: process.env.LOG_LEVEL || config.logLevel,
+  COLLECT_RESOURCE_USAGE: process.env.COLLECT_RESOURCE_USAGE || config.collectResourceUsage
+}, bunyan.stdSerializers);
+
+config.logger = agent.logger;
+config.metrics = agent.metrics;
 var server = new BaaSServer(config);
 
 server.start();
