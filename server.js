@@ -3,7 +3,7 @@ const cluster = require('cluster');
 const EventEmitter = require('events').EventEmitter;
 
 const util   = require('util');
-const logger = require('./lib/logger');
+const bunyan = require('bunyan');
 const _      = require('lodash');
 const net = require('net');
 
@@ -24,7 +24,12 @@ const defaults = {
     increment: _.noop,
     histogram: _.noop,
     flush:     _.noop
-  }
+  },
+  logger: bunyan.createLogger({
+    name:        'baas',
+    level:       'error',
+    serializers: bunyan.stdSerializers
+  })
 };
 
 function fork_worker() {
@@ -61,7 +66,7 @@ function BaaSServer (options) {
   const self = this;
 
   this._config = _.extend({}, defaults, options);
-  this._logger = logger(this._config.logLevel);
+  this._logger = this._config.logger;
   this._server = net.createServer(this._handler.bind(this));
   this._metrics = this._config.metrics;
   this._server.on('error', function (err) {
@@ -74,9 +79,9 @@ function BaaSServer (options) {
   });
 
   const workers_number = typeof process.env.WORKERS === 'undefined' ||
-                          process.env.WORKERS === 'AUTO' ?
-                          Math.max(require('os').cpus().length - 1, 1) :
-                          parseInt(process.env.WORKERS);
+    process.env.WORKERS === 'AUTO' ?
+    Math.max(require('os').cpus().length - 1, 1) :
+    parseInt(process.env.WORKERS);
 
   this._workers = _.range(workers_number).map(fork_worker);
 
@@ -119,46 +124,46 @@ BaaSServer.prototype._handler = function (socket) {
   });
 
   socket.pipe(decoder)
-        .pipe(through2.obj((request, encoding, callback) => {
-          const worker = self._workers.shift();
-          const operation = request.operation === 0 ? 'compare' : 'hash';
-          const start = new Date();
+    .pipe(through2.obj((request, encoding, callback) => {
+      const worker = self._workers.shift();
+      const operation = request.operation === 0 ? 'compare' : 'hash';
+      const start = new Date();
 
-          if (!worker) {
-            log.info({
-              request:    request.id,
-              connection: socket._connection_id,
-              took:       new Date() - start,
-              operation:  operation
-            }, `${operation} not done - server is busy`);
+      if (!worker) {
+        log.info({
+          request:    request.id,
+          connection: socket._connection_id,
+          took:       new Date() - start,
+          operation:  operation
+        }, `${operation} not done - server is busy`);
 
-            return  callback(null, new Response({
-              request_id: request.id,
-              success:    false,
-              busy:       true
-            }));
-          }
+        return  callback(null, new Response({
+          request_id: request.id,
+          success:    false,
+          busy:       true
+        }));
+      }
 
-          self._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
+      self._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
 
-          worker.sendRequest(request, (err, response) => {
-            log.info({
-              request:    request.id,
-              connection: socket._connection_id,
-              took:       new Date() - start,
-              worker:     worker.id,
-              operation:  operation
-            }, `${operation} completed`);
+      worker.sendRequest(request, (err, response) => {
+        log.info({
+          request:    request.id,
+          connection: socket._connection_id,
+          took:       new Date() - start,
+          worker:     worker.id,
+          operation:  operation
+        }, `${operation} completed`);
 
-            self._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
-            self._metrics.increment(`requests.processed.${operation}`);
-            self._workers.push(worker);
-            callback(null, new Response(response));
-          });
+        self._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
+        self._metrics.increment(`requests.processed.${operation}`);
+        self._workers.push(worker);
+        callback(null, new Response(response));
+      });
 
-        }))
-        .pipe(ResponseWriter())
-        .pipe(socket);
+    }))
+    .pipe(ResponseWriter())
+    .pipe(socket);
 };
 
 BaaSServer.prototype.start = function (done) {
