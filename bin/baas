@@ -35,7 +35,7 @@ agent.init({ name: 'baas' }, {
   METRICS_PREFIX: process.env.METRICS_PREFIX || config.metricsPrefix,
   ERROR_REPORTER_URL: process.env.ERROR_REPORTER_URL || config.errorReporterUrl,
   LOG_LEVEL: process.env.LOG_LEVEL || config.logLevel,
-  KINESIS_POOL: process.env.KINESIS_POOL || config.kinesisPool,
+  LOG_TO_KINESIS: process.env.LOG_TO_KINESIS || config.logToKinesis,
   LOG_TO_KINESIS_LEVEL: process.env.LOG_LEVEL || config.logLevel,
   COLLECT_RESOURCE_USAGE: process.env.COLLECT_RESOURCE_USAGE || config.collectResourceUsage
 }, bunyan.stdSerializers);
