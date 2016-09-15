@@ -31,6 +31,8 @@ if (config.configFile) {
 
 agent.init({ name: 'baas' }, {
   METRICS_API_KEY: process.env.METRICS_API_KEY || config.metricsApiKey,
+  STATSD_HOST: process.env.STATSD_HOST || config.statsdHost,
+  METRICS_PREFIX: process.env.METRICS_PREFIX || config.metricsPrefix,
   ERROR_REPORTER_URL: process.env.ERROR_REPORTER_URL || config.errorReporterUrl,
   LOG_LEVEL: process.env.LOG_LEVEL || config.logLevel,
   KINESIS_POOL: process.env.KINESIS_POOL || config.kinesisPool,
