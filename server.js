@@ -139,7 +139,7 @@ BaaSServer.prototype._handler = function (socket) {
 
         self._metrics.increment('request.rejected');
 
-        return  callback(null, new Response({
+        return callback(null, new Response({
           request_id: request.id,
           success:    false,
           busy:       true
