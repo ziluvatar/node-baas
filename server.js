@@ -137,7 +137,9 @@ BaaSServer.prototype._handler = function (socket) {
           operation:  operation
         }, `${operation} not done - server is busy`);
 
-        return  callback(null, new Response({
+        self._metrics.increment('request.rejected');
+
+        return callback(null, new Response({
           request_id: request.id,
           success:    false,
           busy:       true
