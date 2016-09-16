@@ -146,6 +146,7 @@ BaaSServer.prototype._handler = function (socket) {
         }));
       }
 
+      self._metrics.increment(`requests.incoming`);
       self._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
 
       worker.sendRequest(request, (err, response) => {
