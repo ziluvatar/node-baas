@@ -92,9 +92,8 @@ BaaSClient.prototype.connect = function (done) {
 };
 
 BaaSClient.prototype.hash = function (password, salt, callback) {
-  const self = this;
-
-  //salt is keep for api-level compatibility with node-bcrypt
+  //Salt is keep for api-level compatibility with node-bcrypt
+  //but is enforced in the backend.
   if (typeof salt === 'function') {
     callback = salt;
   }
@@ -103,42 +102,17 @@ BaaSClient.prototype.hash = function (password, salt, callback) {
     return setImmediate(callback, new Error('password is required'));
   }
 
-  if (!callback) {
-    return setImmediate(callback, new Error('callback is required'));
-  }
-
-  if (!self.stream || !self.stream.writable) {
-    return setImmediate(callback, new Error('The socket is closed.'));
-  }
-
-  self._requestCount++;
-
-  callback = cb(callback).timeout(self._options.requestTimeout);
-
-  var request = new RequestMessage({
-    'id':        randomstring.generate(7),
+  const request = {
     'password':  password,
     'operation': RequestMessage.Operation.HASH,
-  });
+  };
 
-  self._pendingRequests++;
-  self.stream.write(request.encodeDelimited().toBuffer());
-
-  self.once('response_' + request.id, function (response) {
-    self._pendingRequests--;
-    if (self._pendingRequests === 0) {
-      self.emit('drain');
-    }
-    if (response.busy) {
-      return callback(new Error('baas server is busy'));
-    }
-    callback(null, response.hash);
+  this._sendRequest(request, (err, response) => {
+    callback(err, response && response.hash);
   });
 };
 
 BaaSClient.prototype.compare = function (password, hash, callback) {
-  const self = this;
-
   if (!password) {
     return setImmediate(callback, new Error('password is required'));
   }
@@ -147,6 +121,18 @@ BaaSClient.prototype.compare = function (password, hash, callback) {
     return setImmediate(callback, new Error('hash is required'));
   }
 
+  var request = {
+    'password':  password,
+    'hash':      hash,
+    'operation': RequestMessage.Operation.COMPARE,
+  };
+
+  this._sendRequest(request, (err, response) => {
+    callback(err, response && response.success);
+  });
+};
+
+BaaSClient.prototype._sendRequest = function (params, callback) {
   if (!callback) {
     return setImmediate(callback, new Error('callback is required'));
   }
@@ -155,30 +141,28 @@ BaaSClient.prototype.compare = function (password, hash, callback) {
     return setImmediate(callback, new Error('The socket is closed.'));
   }
 
+  const request = new RequestMessage(_.extend({
+    'id': randomstring.generate(7)
+  }, params));
+
   this._requestCount++;
+  this._pendingRequests++;
 
   callback = cb(callback).timeout(this._options.requestTimeout);
 
-  var request = new RequestMessage({
-    'id':        randomstring.generate(7),
-    'password':  password,
-    'hash':      hash,
-    'operation': RequestMessage.Operation.COMPARE,
-  });
+  this.stream.write(request.encodeDelimited().toBuffer());
 
-  self._pendingRequests++;
-  self.stream.write(request.encodeDelimited().toBuffer());
-
-  self.once('response_' + request.id, function (response) {
-    self._pendingRequests--;
-    if (self._pendingRequests === 0) {
-      self.emit('drain');
+  this.once('response_' + request.id, (response) => {
+    this._pendingRequests--;
+    if (this._pendingRequests === 0) {
+      this.emit('drain');
     }
 
     if (response.busy) {
       return callback(new Error('baas server is busy'));
     }
-    callback(null, response.success);
+
+    callback(null, response);
   });
 };
 
