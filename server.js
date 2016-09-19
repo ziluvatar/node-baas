@@ -84,8 +84,6 @@ function BaaSServer (options) {
     parseInt(process.env.WORKERS);
 
   this._workers = _.range(workers_number).map(fork_worker);
-
-
 }
 
 util.inherits(BaaSServer, EventEmitter);
@@ -188,6 +186,7 @@ BaaSServer.prototype.start = function (done) {
     log.info(address, 'server started');
 
     self.emit('started', address);
+
     if (done) {
       done(null, address);
     }

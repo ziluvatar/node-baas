@@ -1,29 +1,23 @@
 const bcrypt = require('bcrypt');
 
-function compare (request, callback) {
-  const success = bcrypt.compareSync(request.password, request.hash);
+const execute = module.exports = function (request) {
   const request_id = request.id;
-  return callback(null, {
-    request_id,
-    success
-  });
-}
 
-function hash (request, callback) {
-  const hash = bcrypt.hashSync(request.password, 10);
-  const request_id = request.id;
-  return callback(null, {
-    request_id,
-    hash,
-    success: true
-  });
-}
-
-const worker = module.exports = function (request, callback) {
   if (request.operation === 0) {
-    return compare(request, callback);
+    //compare
+    const success = bcrypt.compareSync(request.password, request.hash);
+    return {
+      request_id,
+      success
+    };
   } else if (request.operation === 1) {
-    return hash(request, callback);
+    //hash
+    const hash = bcrypt.hashSync(request.password, 10);
+    return {
+      request_id,
+      hash,
+      success: true
+    };
   }
 };
 
@@ -32,8 +26,6 @@ const worker = module.exports = function (request, callback) {
  * operation { compare: 0, hash: 1}
  */
 process.on('message', (request) => {
-  return worker(request, function (err, result) {
-    process.send(result);
-  });
+  process.send(execute(request));
 });
 
