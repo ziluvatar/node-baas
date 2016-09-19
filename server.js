@@ -121,6 +121,10 @@ BaaSServer.prototype._handler = function (socket) {
     return socket.end();
   });
 
+  const responseStream = ResponseWriter();
+
+  responseStream.pipe(socket);
+
   socket.pipe(decoder)
     .pipe(through2.obj((request, encoding, callback) => {
       const worker = self._workers.shift();
@@ -137,11 +141,13 @@ BaaSServer.prototype._handler = function (socket) {
 
         self._metrics.increment('request.rejected');
 
-        return callback(null, new Response({
+        responseStream.write(new Response({
           request_id: request.id,
           success:    false,
           busy:       true
         }));
+
+        return callback();
       }
 
       self._metrics.increment(`requests.incoming`);
@@ -159,12 +165,11 @@ BaaSServer.prototype._handler = function (socket) {
         self._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
         self._metrics.increment(`requests.processed.${operation}`);
         self._workers.push(worker);
-        callback(null, new Response(response));
+        responseStream.write(new Response(response));
       });
 
-    }))
-    .pipe(ResponseWriter())
-    .pipe(socket);
+      callback();
+    }));
 };
 
 BaaSServer.prototype.start = function (done) {
