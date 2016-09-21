@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/auth0/node-baas)](https://travis-ci.org/auth0/node-baas)
+[![Build Status](https://travis-ci.org/auth0/node-baas.svg?branch=master)](https://travis-ci.org/auth0/node-baas)
 
 Bcrypt as a service (node.js)
 
