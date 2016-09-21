@@ -16,9 +16,10 @@ const Response       = require('./messages').Response;
 
 
 const defaults = {
-  port:      9485,
-  hostname:  '0.0.0.0',
+  port:     9485,
+  hostname: '0.0.0.0',
   logLevel: 'info',
+  socketTimeout: 2000,
   metrics: {
     gauge:     _.noop,
     increment: _.noop,
@@ -108,6 +109,13 @@ BaaSServer.prototype._handler = function (socket) {
     this._metrics.increment('connection.closed');
     log.debug(sockets_details, 'connection closed');
   });
+
+  if (this._config.socketTimeout) {
+    socket.setTimeout(this._config.socketTimeout);
+    socket.once('timeout', () => {
+      socket.end();
+    });
+  }
 
   log.debug(sockets_details, 'connection accepted');
 
