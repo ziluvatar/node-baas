@@ -63,14 +63,13 @@ function fork_worker() {
  */
 function BaaSServer (options) {
   EventEmitter.call(this);
-  const self = this;
 
   this._config = _.extend({}, defaults, options);
   this._logger = this._config.logger;
   this._server = net.createServer(this._handler.bind(this));
   this._metrics = this._config.metrics;
-  this._server.on('error', function (err) {
-    self.emit('error', err);
+  this._server.on('error', (err) => {
+    this.emit('error', err);
   });
 
 
@@ -89,26 +88,24 @@ function BaaSServer (options) {
 util.inherits(BaaSServer, EventEmitter);
 
 BaaSServer.prototype._handler = function (socket) {
-  const self = this;
-
-  self._metrics.increment('connection.incoming');
+  this._metrics.increment('connection.incoming');
 
   const sockets_details = _.pick(socket, ['remoteAddress', 'remotePort']);
 
   sockets_details.connection = socket._connection_id = randomstring.generate(5);
 
-  const log = self._logger;
+  const log = this._logger;
 
-  socket.on('error', function (err) {
-    self._metrics.increment('connection.error');
+  socket.on('error', (err) => {
+    this._metrics.increment('connection.error');
     log.info(_.extend(sockets_details, {
       err: {
         code:    err.code,
         message: err.message
       }
     }), 'connection error');
-  }).on('close', function () {
-    self._metrics.increment('connection.closed');
+  }).on('close', () => {
+    this._metrics.increment('connection.closed');
     log.debug(sockets_details, 'connection closed');
   });
 
@@ -116,7 +113,7 @@ BaaSServer.prototype._handler = function (socket) {
 
   const decoder = RequestDecoder();
 
-  decoder.on('error', function () {
+  decoder.on('error',  () => {
     log.info(sockets_details, 'unknown message format');
     return socket.end();
   });
@@ -127,7 +124,7 @@ BaaSServer.prototype._handler = function (socket) {
 
   socket.pipe(decoder)
     .pipe(through2.obj((request, encoding, callback) => {
-      const worker = self._workers.shift();
+      const worker = this._workers.shift();
       const operation = request.operation === 0 ? 'compare' : 'hash';
       const start = new Date();
 
@@ -139,7 +136,7 @@ BaaSServer.prototype._handler = function (socket) {
           operation:  operation
         }, `${operation} not done - server is busy`);
 
-        self._metrics.increment('request.rejected');
+        this._metrics.increment('request.rejected');
 
         responseStream.write(new Response({
           request_id: request.id,
@@ -150,8 +147,8 @@ BaaSServer.prototype._handler = function (socket) {
         return callback();
       }
 
-      self._metrics.increment(`requests.incoming`);
-      self._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
+      this._metrics.increment(`requests.incoming`);
+      this._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
 
       worker.sendRequest(request, (err, response) => {
         log.info({
@@ -162,9 +159,9 @@ BaaSServer.prototype._handler = function (socket) {
           operation:  operation
         }, `${operation} completed`);
 
-        self._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
-        self._metrics.increment(`requests.processed.${operation}`);
-        self._workers.push(worker);
+        this._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
+        this._metrics.increment(`requests.processed.${operation}`);
+        this._workers.push(worker);
         responseStream.write(new Response(response));
       });
 
@@ -173,24 +170,23 @@ BaaSServer.prototype._handler = function (socket) {
 };
 
 BaaSServer.prototype.start = function (done) {
-  const self = this;
-  const log = self._logger;
+  const log = this._logger;
 
-  self._server.listen(this._config.port, this._config.hostname, function(err) {
+  this._server.listen(this._config.port, this._config.hostname, (err) => {
     if (err) {
       log.error(err, 'error starting server');
-      self.emit('error', err);
+      this.emit('error', err);
       if (done) {
         done(err);
       }
       return;
     }
 
-    const address = self._server.address();
+    const address = this._server.address();
 
     log.info(address, 'server started');
 
-    self.emit('started', address);
+    this.emit('started', address);
 
     if (done) {
       done(null, address);
@@ -201,13 +197,12 @@ BaaSServer.prototype.start = function (done) {
 };
 
 BaaSServer.prototype.stop = function () {
-  const self = this;
-  const log = self._logger;
-  const address = self._server.address();
+  const log = this._logger;
+  const address = this._server.address();
 
-  this._server.close(function() {
+  this._server.close(() => {
     log.debug(address, 'server closed');
-    self.emit('close');
+    this.emit('close');
   });
 };
 
