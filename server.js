@@ -41,6 +41,7 @@ function fork_worker() {
   worker.on('message', function (response) {
     var callback = worker._pendingRequests.get(response.request_id);
     worker._pendingRequests.delete(response.request_id);
+    worker.emit('drain');
     return callback(null, response);
   });
 
@@ -78,12 +79,26 @@ function BaaSServer (options) {
     exec: __dirname + '/worker.js'
   });
 
-  const workers_number = typeof process.env.WORKERS === 'undefined' ||
-    process.env.WORKERS === 'AUTO' ?
-    Math.max(require('os').cpus().length - 1, 1) :
-    parseInt(process.env.WORKERS);
+  var workers_number;
 
+  if (options.workers) {
+    workers_number = options.workers;
+  } else if (!isNaN(process.env.WORKERS)) {
+    workers_number = parseInt(process.env.WORKERS, 10);
+  } else {
+    workers_number = Math.max(require('os').cpus().length - 1, 1);
+  }
+
+  this._queue = [];
   this._workers = _.range(workers_number).map(fork_worker);
+
+  this._workers.forEach(worker => {
+    worker.on('drain', () => {
+      const pending = this._queue.shift();
+      if (!pending) { return; }
+      worker.sendRequest(pending.request, pending.done(worker, true));
+    });
+  });
 }
 
 util.inherits(BaaSServer, EventEmitter);
@@ -135,22 +150,44 @@ BaaSServer.prototype._handler = function (socket) {
       const worker = this._workers.shift();
       const operation = request.operation === 0 ? 'compare' : 'hash';
       const start = new Date();
+      const done = (worker, enqueued) => {
+        return (err, response) => {
+          log.info({
+            request:    request.id,
+            connection: socket._connection_id,
+            took:       new Date() - start,
+            worker:     worker.id,
+            operation:  operation,
+            enqueued:   enqueued
+          }, `${operation} completed`);
+
+          this._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
+          this._metrics.increment(`requests.processed.${operation}`);
+          this._workers.push(worker);
+          responseStream.write(new Response(response));
+        };
+      };
+
 
       if (!worker) {
-        log.info({
-          request:    request.id,
-          connection: socket._connection_id,
-          took:       new Date() - start,
-          operation:  operation
-        }, `${operation} not done - server is busy`);
+        if (request.enqueue) {
+          this._queue.push({request, done});
+        } else {
+          log.info({
+            request:    request.id,
+            connection: socket._connection_id,
+            took:       new Date() - start,
+            operation:  operation
+          }, `${operation} not done - server is busy`);
 
-        this._metrics.increment('request.rejected');
+          this._metrics.increment('request.rejected');
 
-        responseStream.write(new Response({
-          request_id: request.id,
-          success:    false,
-          busy:       true
-        }));
+          responseStream.write(new Response({
+            request_id: request.id,
+            success:    false,
+            busy:       true
+          }));
+        }
 
         return callback();
       }
@@ -158,20 +195,7 @@ BaaSServer.prototype._handler = function (socket) {
       this._metrics.increment(`requests.incoming`);
       this._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
 
-      worker.sendRequest(request, (err, response) => {
-        log.info({
-          request:    request.id,
-          connection: socket._connection_id,
-          took:       new Date() - start,
-          worker:     worker.id,
-          operation:  operation
-        }, `${operation} completed`);
-
-        this._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
-        this._metrics.increment(`requests.processed.${operation}`);
-        this._workers.push(worker);
-        responseStream.write(new Response(response));
-      });
+      worker.sendRequest(request, done(worker, false));
 
       callback();
     }));

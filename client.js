@@ -142,9 +142,10 @@ BaaSClient.prototype._sendRequest = function (params, callback) {
   }
 
   const request = new RequestMessage(_.extend({
-    'id': randomstring.generate(7)
+    'id': randomstring.generate(7),
+    'enqueue': !!this._options.enqueueOnServer
   }, params));
-
+  // console.dir(request);
   this._requestCount++;
   this._pendingRequests++;
 

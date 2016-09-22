@@ -12,4 +12,7 @@ message Request {
   required Operation operation = 3;
 
   optional string hash = 4;
+
+  //allow queing the request in the backend if no worker is available
+  optional bool enqueue = 5 [default = false];
 }
