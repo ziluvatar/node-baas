@@ -95,8 +95,11 @@ function BaaSServer (options) {
   this._workers.forEach(worker => {
     worker.on('drain', () => {
       const pending = this._queue.shift();
-      if (!pending) { return; }
-      worker.sendRequest(pending.request, pending.done(worker, true));
+      if (!pending) {
+        this._workers.push(worker);
+      } else {
+        worker.sendRequest(pending.request, pending.done(worker, true));
+      }
     });
   });
 }
@@ -163,7 +166,7 @@ BaaSServer.prototype._handler = function (socket) {
 
           this._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
           this._metrics.increment(`requests.processed.${operation}`);
-          this._workers.push(worker);
+
           responseStream.write(new Response(response));
         };
       };
