@@ -1,19 +1,18 @@
+'use strict';
 const BaaSServer = require('..').Server;
 const BaaSPool = require('../pool');
 const freeport = require('freeport');
 const assert = require('chai').assert;
 const bcrypt = require('bcrypt');
 
-var client;
-
 describe('pool client', function () {
-
-  var server;
+  let client;
+  let server;
 
   before(function (done) {
     freeport(function (err, port) {
       if (err) { return done(err); }
-      server = new BaaSServer({ port, logLevel: 'error'});
+      server = new BaaSServer({ port, logLevel: 'error' });
 
       server.start(function (err, address) {
         if (err) return done(err);
@@ -53,5 +52,4 @@ describe('pool client', function () {
       done();
     });
   });
-
 });

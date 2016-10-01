@@ -21,7 +21,7 @@ const lib_map = {
 };
 
 function parseURI (uri) {
-  var parsed = url.parse(uri);
+  const parsed = url.parse(uri);
   return {
     host: parsed.hostname,
     port: parseInt(parsed.port || DEFAULT_PORT, 10),
@@ -63,8 +63,8 @@ function BaaSClient (options, done) {
 util.inherits(BaaSClient, EventEmitter);
 
 BaaSClient.prototype.connect = function (done) {
-  var options = this._options;
-  var client = this;
+  const options = this._options;
+  const client = this;
 
   this.socket = this._socketLib(function (stream) {
 
@@ -142,8 +142,7 @@ BaaSClient.prototype._sendRequest = function (params, callback) {
   }
 
   const request = new RequestMessage(_.extend({
-    'id': randomstring.generate(7),
-    'enqueue': !!this._options.enqueueOnServer
+    'id': randomstring.generate(7)
   }, params));
   // console.dir(request);
   this._requestCount++;
@@ -153,7 +152,7 @@ BaaSClient.prototype._sendRequest = function (params, callback) {
 
   this.stream.write(request.encodeDelimited().toBuffer());
 
-  this.once('response_' + request.id, (response) => {
+  this.once('response_' + request.id, response => {
     this._pendingRequests--;
     if (this._pendingRequests === 0) {
       this.emit('drain');

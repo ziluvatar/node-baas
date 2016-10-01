@@ -27,6 +27,7 @@
     "cb": "~0.1.0",
     "commander": "~2.6.0",
     "debug": "~2.1.1",
+    "double-ended-queue": "^2.1.0-0",
     "event-stream": "~3.2.2",
     "js-yaml": "~3.2.5",
     "lodash": "~3.1.0",
