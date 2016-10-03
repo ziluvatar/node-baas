@@ -6,6 +6,7 @@ const util   = require('util');
 const bunyan = require('bunyan');
 const _      = require('lodash');
 const net = require('net');
+const Deque = require("double-ended-queue");
 
 const RequestDecoder = require('./messages/decoders').RequestDecoder;
 const randomstring = require('randomstring');
@@ -13,7 +14,6 @@ const randomstring = require('randomstring');
 const ResponseWriter = require('./lib/pipeline/response_writer');
 const through2 = require('through2');
 const Response       = require('./messages').Response;
-
 
 const defaults = {
   port:     9485,
@@ -39,7 +39,7 @@ function fork_worker() {
   worker._pendingRequests = new Map();
 
   worker.on('message', function (response) {
-    var callback = worker._pendingRequests.get(response.request_id);
+    const callback = worker._pendingRequests.get(response.request_id);
     worker._pendingRequests.delete(response.request_id);
     worker.emit('drain');
     return callback(null, response);
@@ -89,7 +89,7 @@ function BaaSServer (options) {
     workers_number = Math.max(require('os').cpus().length - 1, 1);
   }
 
-  this._queue = [];
+  this._queue = new Deque();
   this._workers = _.range(workers_number).map(fork_worker);
 
   this._workers.forEach(worker => {
@@ -98,7 +98,7 @@ function BaaSServer (options) {
       if (!pending) {
         this._workers.push(worker);
       } else {
-        worker.sendRequest(pending.request, pending.done(worker, true));
+        worker.sendRequest(pending.request, pending.done(worker.id, true));
       }
     });
   });
@@ -150,16 +150,15 @@ BaaSServer.prototype._handler = function (socket) {
 
   socket.pipe(decoder)
     .pipe(through2.obj((request, encoding, callback) => {
-      const worker = this._workers.shift();
       const operation = request.operation === 0 ? 'compare' : 'hash';
       const start = new Date();
-      const done = (worker, enqueued) => {
+      const done = (worker_id, enqueued) => {
         return (err, response) => {
           log.info({
             request:    request.id,
             connection: socket._connection_id,
             took:       new Date() - start,
-            worker:     worker.id,
+            worker:     worker_id,
             operation:  operation,
             enqueued:   enqueued
           }, `${operation} completed`);
@@ -171,34 +170,19 @@ BaaSServer.prototype._handler = function (socket) {
         };
       };
 
-
-      if (!worker) {
-        if (request.enqueue) {
-          this._queue.push({request, done});
-        } else {
-          log.info({
-            request:    request.id,
-            connection: socket._connection_id,
-            took:       new Date() - start,
-            operation:  operation
-          }, `${operation} not done - server is busy`);
-
-          this._metrics.increment('request.rejected');
-
-          responseStream.write(new Response({
-            request_id: request.id,
-            success:    false,
-            busy:       true
-          }));
-        }
-
+      if (!this._workers.length){
+        // no available workers, queue and wait
+        this._queue.push({request, done});
         return callback();
       }
+
+      // all workers are the same, pop is faster than shift: http://stackoverflow.com/questions/6501160/why-is-pop-faster-than-shift
+      const worker = this._workers.pop();
 
       this._metrics.increment(`requests.incoming`);
       this._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
 
-      worker.sendRequest(request, done(worker, false));
+      worker.sendRequest(request, done(worker.id, false));
 
       callback();
     }));
@@ -211,9 +195,7 @@ BaaSServer.prototype.start = function (done) {
     if (err) {
       log.error(err, 'error starting server');
       this.emit('error', err);
-      if (done) {
-        done(err);
-      }
+      if (done) { done(err); }
       return;
     }
 
@@ -223,9 +205,7 @@ BaaSServer.prototype.start = function (done) {
 
     this.emit('started', address);
 
-    if (done) {
-      done(null, address);
-    }
+    if (done) { return done(null, address); }
   });
 
   return this;
