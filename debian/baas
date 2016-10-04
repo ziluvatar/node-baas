@@ -25,6 +25,8 @@ script
   # If default file, source it
   PORT=9485
   SALT=10
+  CONFIG_FILE=/etc/baas.config
+
   [ -f /etc/default/baas_defaults ] && . /etc/default/baas_defaults
 
   exec start-stop-daemon \
@@ -33,7 +35,7 @@ script
     --pidfile /var/run/$UPSTART_JOB.pid \
     --chuid baas \
     --start \
-    --exec $NODE_PATH/node $DIR/bin/baas -- -p $PORT -s $SALT >> /var/log/baas.log 2>&1
+    --exec $NODE_PATH/node $DIR/bin/baas -- -p $PORT -s $SALT -c $CONFIG_FILE >> /var/log/baas.log 2>&1
 end script
 
 post-start script

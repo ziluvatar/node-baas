@@ -131,6 +131,7 @@ BaaSServer.prototype._handler = function (socket) {
   if (this._config.socketTimeout) {
     socket.setTimeout(this._config.socketTimeout);
     socket.once('timeout', () => {
+      log.info(sockets_details, 'idle connection closed');
       socket.end();
     });
   }
