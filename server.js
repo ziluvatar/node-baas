@@ -105,6 +105,7 @@ function BaaSServer (options) {
   });
 
   if (process.env.REPORT_QUEUE_LENGTH) {
+    this.cloudWatch = new AWS.CloudWatch();
     setInterval(this._reportQueueLength.bind(this), 1000);
   }
 }
@@ -112,11 +113,9 @@ function BaaSServer (options) {
 util.inherits(BaaSServer, EventEmitter);
 
 BaaSServer.prototype._reportQueueLength = function () {
-  this._metrics.histogram(`requests.queued`, this._queue.length);
+  this._metrics.gauge('requests.queued', this._queue.length);
 
-  var aws = new AWS.CloudWatch();
-
-  aws.putMetricData({
+  this.cloudWatch.putMetricData({
     MetricData: [
       {
         MetricName: 'QueuedRequests',
