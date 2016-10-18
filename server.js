@@ -102,6 +102,10 @@ function BaaSServer (options) {
       }
     });
   });
+
+  setInterval(() => {
+    this._metrics.histogram(`requests.queued`, this._queue.length);
+  }, 1000);
 }
 
 util.inherits(BaaSServer, EventEmitter);
