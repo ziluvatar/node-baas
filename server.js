@@ -2,18 +2,19 @@ const cluster = require('cluster');
 
 const EventEmitter = require('events').EventEmitter;
 
-const util   = require('util');
-const bunyan = require('bunyan');
-const _      = require('lodash');
-const net = require('net');
-const Deque = require("double-ended-queue");
+const util           = require('util');
+const bunyan         = require('bunyan');
+const _              = require('lodash');
+const net            = require('net');
+const Deque          = require("double-ended-queue");
 
 const RequestDecoder = require('./messages/decoders').RequestDecoder;
-const randomstring = require('randomstring');
+const randomstring   = require('randomstring');
 
 const ResponseWriter = require('./lib/pipeline/response_writer');
-const through2 = require('through2');
+const through2       = require('through2');
 const Response       = require('./messages').Response;
+const AWS            = require('aws-sdk');
 
 const defaults = {
   port:     9485,
@@ -103,12 +104,40 @@ function BaaSServer (options) {
     });
   });
 
-  setInterval(() => {
-    this._metrics.histogram(`requests.queued`, this._queue.length);
-  }, 1000);
+  if (process.env.REPORT_QUEUE_LENGTH) {
+    setInterval(this._reportQueueLength.bind(this), 1000);
+  }
 }
 
 util.inherits(BaaSServer, EventEmitter);
+
+BaaSServer.prototype._reportQueueLength = function () {
+  this._metrics.histogram(`requests.queued`, this._queue.length);
+
+  var aws = new AWS.CloudWatch();
+
+  aws.putMetricData({
+    MetricData: [
+      {
+        MetricName: 'QueuedRequests',
+        Unit:       'Count',
+        Timestamp:  new Date(),
+        Value:      this._queue.length,
+        Dimensions: [
+          {
+            Name: 'StackName',
+            Value: process.env.STACK_NAME
+          }
+        ]
+      }
+    ],
+    Namespace: 'Auth0/BAAS'
+  }, (err) => {
+    if (err) {
+      this._logger.error({ err }, err.message);
+    }
+  });
+};
 
 BaaSServer.prototype._handler = function (socket) {
   this._metrics.increment('connection.incoming');
