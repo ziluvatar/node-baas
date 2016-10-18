@@ -115,6 +115,15 @@ util.inherits(BaaSServer, EventEmitter);
 BaaSServer.prototype._reportQueueLength = function () {
   this._metrics.gauge('requests.queued', this._queue.length);
 
+  const dimensions = [];
+
+  if (process.env.STACK_NAME) {
+    dimensions.push({
+      Name: 'StackName',
+      Value: process.env.STACK_NAME
+    });
+  }
+
   this.cloudWatch.putMetricData({
     MetricData: [
       {
@@ -122,12 +131,7 @@ BaaSServer.prototype._reportQueueLength = function () {
         Unit:       'Count',
         Timestamp:  new Date(),
         Value:      this._queue.length,
-        Dimensions: [
-          {
-            Name: 'StackName',
-            Value: process.env.STACK_NAME
-          }
-        ]
+        Dimensions: dimensions
       }
     ],
     Namespace: 'Auth0/BAAS'
