@@ -189,6 +189,7 @@ BaaSServer.prototype._handler = function (socket) {
     .pipe(through2.obj((request, encoding, callback) => {
       const operation = request.operation === 0 ? 'compare' : 'hash';
       const start = new Date();
+
       const done = (worker_id, enqueued) => {
         return (err, response) => {
           log.info({
@@ -197,7 +198,8 @@ BaaSServer.prototype._handler = function (socket) {
             took:       new Date() - start,
             worker:     worker_id,
             operation:  operation,
-            enqueued:   enqueued
+            enqueued:   enqueued,
+            log_type:   'response'
           }, `${operation} completed`);
 
           this._metrics.histogram(`requests.processed.${operation}.time`, (new Date() - start));
@@ -208,6 +210,14 @@ BaaSServer.prototype._handler = function (socket) {
       };
 
       this._metrics.increment(`requests.incoming`);
+
+      log.info({
+        request:    request.id,
+        connection: socket._connection_id,
+        operation:  operation,
+        log_type:   'request',
+        queued:     this._workers.length === 0
+      }, `incoming ${operation}`);
 
       if (!this._workers.length){
         // no available workers, queue and wait
