@@ -207,6 +207,8 @@ BaaSServer.prototype._handler = function (socket) {
         };
       };
 
+      this._metrics.increment(`requests.incoming`);
+
       if (!this._workers.length){
         // no available workers, queue and wait
         this._queue.push({request, done});
@@ -215,9 +217,6 @@ BaaSServer.prototype._handler = function (socket) {
 
       // all workers are the same, pop is faster than shift: http://stackoverflow.com/questions/6501160/why-is-pop-faster-than-shift
       const worker = this._workers.pop();
-
-      this._metrics.increment(`requests.incoming`);
-      this._metrics.histogram(`requests.incoming.${operation}.time`, (new Date() - start));
 
       worker.sendRequest(request, done(worker.id, false));
 
