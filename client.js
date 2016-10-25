@@ -6,8 +6,8 @@ const RequestMessage   = require('./messages').Request;
 const ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
 const url              = require('url');
 const reconnectTls     = require('reconnect-tls');
+const disyuntor        = require('disyuntor');
 
-const cb = require('cb');
 const ms = require('ms');
 const _  = require('lodash');
 
@@ -57,6 +57,12 @@ function BaaSClient (options, done) {
   }
 
   this._pendingRequests = 0;
+
+  this._sendRequestSafe = disyuntor(this._sendRequest.bind(this), Object.assign({
+    name: 'baas.client',
+    timeout: options.requestTimeout
+  }, _.pick(options, ['monitor'])));
+
   this.connect(done);
 }
 
@@ -107,7 +113,7 @@ BaaSClient.prototype.hash = function (password, salt, callback) {
     'operation': RequestMessage.Operation.HASH,
   };
 
-  this._sendRequest(request, (err, response) => {
+  this._sendRequestSafe(request, (err, response) => {
     callback(err, response && response.hash);
   });
 };
@@ -127,7 +133,7 @@ BaaSClient.prototype.compare = function (password, hash, callback) {
     'operation': RequestMessage.Operation.COMPARE,
   };
 
-  this._sendRequest(request, (err, response) => {
+  this._sendRequestSafe(request, (err, response) => {
     callback(err, response && response.success);
   });
 };
@@ -147,8 +153,6 @@ BaaSClient.prototype._sendRequest = function (params, callback) {
   // console.dir(request);
   this._requestCount++;
   this._pendingRequests++;
-
-  callback = cb(callback).timeout(this._options.requestTimeout);
 
   this.stream.write(request.encodeDelimited().toBuffer());
 
