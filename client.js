@@ -58,10 +58,13 @@ function BaaSClient (options, done) {
 
   this._pendingRequests = 0;
 
-  this._sendRequestSafe = disyuntor(this._sendRequest.bind(this), Object.assign({
+  this._sendRequestSafe = disyuntor(this._sendRequest.bind(this), _.extend({
     name: 'baas.client',
-    timeout: options.requestTimeout
-  }, _.pick(options, ['monitor'])));
+    timeout: options.requestTimeout,
+    monitor: (details) => {
+      this.emit('breaker_error', details.err);
+    }
+  }, options.breaker || {} ));
 
   this.connect(done);
 }
