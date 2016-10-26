@@ -5,10 +5,9 @@ const assert = require('chai').assert;
 const bcrypt = require('bcrypt');
 const freeport = require('freeport');
 
-var client;
 describe('baas server', function () {
 
-  var server;
+  var server, client;
 
   before(function (done) {
     freeport(function (err, port) {
@@ -19,13 +18,14 @@ describe('baas server', function () {
       server.start(function (err, address) {
         if (err) return done(err);
         client = new BaaSClient(address);
-        client.once('connect', done);
+        client.once('connect', done).once('error', done);
       });
     });
   });
 
-  after(function () {
-    server.stop();
+  after(function(done) {
+    client.disconnect();
+    server.stop(done);
   });
 
   afterEach(function () {

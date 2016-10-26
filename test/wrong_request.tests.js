@@ -3,7 +3,7 @@ const Socket = require('net').Socket;
 const freeport = require('freeport');
 
 describe('wrong requests', function () {
-  var server, address;
+  var server, address, socket;
 
   before(function (done) {
     freeport(function(err, port) {
@@ -18,12 +18,13 @@ describe('wrong requests', function () {
     });
   });
 
-  after(function () {
-    server.stop();
+  after(function(done) {
+    socket.destroy();
+    server.stop(done);
   });
 
   it('should disconnect the socket on unknown message', function (done) {
-    var socket = new Socket();
+    socket = new Socket();
     var ResponseMessage  = require('../messages').Response;
     // I'm going to make the server fail by sending a Response message from the client.
     socket.connect(address.port, address.address)

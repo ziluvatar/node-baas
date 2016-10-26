@@ -9,10 +9,13 @@ describe('BaaSClient when server is off', function () {
       host: '10.0.0.123'
     });
 
-    client.hash('ip', function (err) {
-      assert.equal(err.message, 'The socket is closed.');
-      done();
-    });
+    client
+      .once('error', () => {})
+      .hash('ip', function (err) {
+        assert.equal(err.message, 'The socket is closed.');
+        client.disconnect();
+        done();
+      });
   });
 
 });

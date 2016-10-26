@@ -24,8 +24,9 @@ describe('serving queueing', function () {
     });
   });
 
-  after(function () {
-    server.stop();
+  after(function(done) {
+    client.disconnect();
+    server.stop(done);
   });
 
   afterEach(function () {

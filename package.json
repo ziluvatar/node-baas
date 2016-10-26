@@ -40,6 +40,7 @@
     "read": "~1.0.7",
     "reconnect-net": "~1.0.0",
     "reconnect-tls": "jfromaniello/reconnect-tls#hangup-fix",
+    "server-destroy": "^1.0.1",
     "through2": "~2.0.1",
     "v8-profiler": "~5.6.5"
   },

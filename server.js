@@ -15,6 +15,7 @@ const ResponseWriter = require('./lib/pipeline/response_writer');
 const through2       = require('through2');
 const Response       = require('./messages').Response;
 const AWS            = require('aws-sdk');
+const enableDestroy  = require('server-destroy');
 
 const defaults = {
   port:     9485,
@@ -70,6 +71,7 @@ function BaaSServer (options) {
   this._config = _.extend({}, defaults, options);
   this._logger = this._config.logger;
   this._server = net.createServer(this._handler.bind(this));
+  enableDestroy(this._server);
   this._metrics = this._config.metrics;
   this._server.on('error', (err) => {
     this.emit('error', err);
@@ -257,13 +259,19 @@ BaaSServer.prototype.start = function (done) {
   return this;
 };
 
-BaaSServer.prototype.stop = function () {
+BaaSServer.prototype.stop = function (done) {
   const log = this._logger;
   const address = this._server.address();
 
+  const timeout = setTimeout(() => {
+    this._server.destroy();
+  }, 500);
+
   this._server.close(() => {
+    clearTimeout(timeout);
     log.debug(address, 'server closed');
     this.emit('close');
+    if (done) { done(); }
   });
 };
 

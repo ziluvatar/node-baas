@@ -1,10 +1,11 @@
 const EventEmitter     = require('events').EventEmitter;
 const util             = require('util');
 const randomstring     = require('randomstring');
-const reconnect        = require('reconnect-net');
 const RequestMessage   = require('./messages').Request;
 const ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
 const url              = require('url');
+
+const reconnect        = require('reconnect-net');
 const reconnectTls     = require('reconnect-tls');
 const disyuntor        = require('disyuntor');
 
@@ -81,7 +82,6 @@ BaaSClient.prototype.connect = function (done) {
       client.emit('response', response);
       client.emit('response_' + response.request_id, response);
     });
-
     client.stream = stream;
     client.emit('ready');
   }).once('connect', function () {
