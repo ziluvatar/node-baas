@@ -61,14 +61,13 @@ BaaSPool.prototype._getClient = function (callback) {
 };
 
 BaaSPool.prototype.disconnect = function () {
-  this._clients.forEach(c => this._killClient(c));
+  this._clients.forEach((c) => {this._killClient(c)});
+  this._clients = [];
 };
 
 BaaSPool.prototype._killClient = function (client) {
   const self = this;
   self._openClients--;
-  _.pull(self._clients, client);
-
   if (client.socket) {
     client.socket.reconnect = false;
     if (!client.socket.connected) {
