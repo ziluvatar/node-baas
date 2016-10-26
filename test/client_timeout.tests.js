@@ -4,7 +4,7 @@ const freeport = require('freeport');
 const assert = require('chai').assert;
 const _ = require('lodash');
 
-describe('client (timeout)', function () {
+describe.skip('client (timeout)', function () {
   var server, client;
 
   before(function (done) {
