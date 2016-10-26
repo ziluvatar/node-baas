@@ -1,13 +1,14 @@
 const EventEmitter     = require('events').EventEmitter;
 const util             = require('util');
 const randomstring     = require('randomstring');
-const reconnect        = require('reconnect-net');
 const RequestMessage   = require('./messages').Request;
 const ResponseDecoder  = require('./messages/decoders').ResponseDecoder;
 const url              = require('url');
-const reconnectTls     = require('reconnect-tls');
 
-const cb = require('cb');
+const reconnect        = require('reconnect-net');
+const reconnectTls     = require('reconnect-tls');
+const disyuntor        = require('disyuntor');
+
 const ms = require('ms');
 const _  = require('lodash');
 
@@ -57,6 +58,15 @@ function BaaSClient (options, done) {
   }
 
   this._pendingRequests = 0;
+
+  this._sendRequestSafe = disyuntor(this._sendRequest.bind(this), _.extend({
+    name: 'baas.client',
+    timeout: options.requestTimeout,
+    monitor: (details) => {
+      this.emit('breaker_error', details.err);
+    }
+  }, options.breaker || {} ));
+
   this.connect(done);
 }
 
@@ -72,7 +82,6 @@ BaaSClient.prototype.connect = function (done) {
       client.emit('response', response);
       client.emit('response_' + response.request_id, response);
     });
-
     client.stream = stream;
     client.emit('ready');
   }).once('connect', function () {
@@ -107,7 +116,7 @@ BaaSClient.prototype.hash = function (password, salt, callback) {
     'operation': RequestMessage.Operation.HASH,
   };
 
-  this._sendRequest(request, (err, response) => {
+  this._sendRequestSafe(request, (err, response) => {
     callback(err, response && response.hash);
   });
 };
@@ -127,7 +136,7 @@ BaaSClient.prototype.compare = function (password, hash, callback) {
     'operation': RequestMessage.Operation.COMPARE,
   };
 
-  this._sendRequest(request, (err, response) => {
+  this._sendRequestSafe(request, (err, response) => {
     callback(err, response && response.success);
   });
 };
@@ -147,8 +156,6 @@ BaaSClient.prototype._sendRequest = function (params, callback) {
   // console.dir(request);
   this._requestCount++;
   this._pendingRequests++;
-
-  callback = cb(callback).timeout(this._options.requestTimeout);
 
   this.stream.write(request.encodeDelimited().toBuffer());
 

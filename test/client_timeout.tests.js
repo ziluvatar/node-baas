@@ -4,11 +4,8 @@ const freeport = require('freeport');
 const assert = require('chai').assert;
 const _ = require('lodash');
 
-var client;
-
-describe('client (timeout)', function () {
-
-  var server;
+describe.skip('client (timeout)', function () {
+  var server, client;
 
   before(function (done) {
     freeport(function (err, port) {
@@ -23,12 +20,9 @@ describe('client (timeout)', function () {
     });
   });
 
-  after(function () {
-    server.stop();
-  });
-
-  afterEach(function () {
-    if (Date.unfix) { Date.unfix(); }
+  after(function(done) {
+    client.disconnect();
+    server.stop(done);
   });
 
   it('should be able to hash a password', function (done) {
@@ -42,7 +36,7 @@ describe('client (timeout)', function () {
           assert.ok(result);
           done();
         });
-      }, 600);
+      }, 1050);
     });
   });
 

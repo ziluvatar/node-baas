@@ -6,17 +6,14 @@ const bcrypt = require('bcrypt');
 const ssl_tunnel = require('./util/ssl_tunnel');
 const freeport = require('freeport');
 
-var client;
 
 describe('baas server (ssl)', function () {
-
-  var server;
+  var server, client;
 
   before(function (done) {
     freeport(function (err, port) {
       if (err) { return done(err); }
       server = new BaaSServer({ port, logLevel: 'error' });
-
       server.start(function (err, address) {
         if (err) return done(err);
         ssl_tunnel(9002, address, function (err, address) {
@@ -28,12 +25,9 @@ describe('baas server (ssl)', function () {
     });
   });
 
-  after(function () {
-    server.stop();
-  });
-
-  afterEach(function () {
-    if (Date.unfix) { Date.unfix(); }
+  after(function(done) {
+    client.disconnect();
+    server.stop(done);
   });
 
   it('should throw an error on invalid protocol', function () {
