@@ -25,7 +25,9 @@ BaaSPool.prototype._getClient = function (callback) {
 
   self._clients
     .filter(c => c._requestCount >= self._options.maxRequestsPerConnection || (c.stream && !c.stream.writable))
-    .forEach(c => self._killClient(c));
+    .forEach(c => {
+      self._killClient(c);
+    });
 
   if (self._openClients < self._options.maxConnections) {
     self._openClients++;
@@ -61,13 +63,15 @@ BaaSPool.prototype._getClient = function (callback) {
 };
 
 BaaSPool.prototype.disconnect = function () {
-  this._clients.forEach((c) => {this._killClient(c)});
-  this._clients = [];
+  _.clone(this._clients)
+   .forEach(c => this._killClient(c));
 };
 
 BaaSPool.prototype._killClient = function (client) {
   const self = this;
   self._openClients--;
+  _.pull(self._clients, client);
+
   if (client.socket) {
     client.socket.reconnect = false;
     if (!client.socket.connected) {
@@ -77,8 +81,10 @@ BaaSPool.prototype._killClient = function (client) {
 
   if (client._pendingRequests === 0) {
     client.disconnect();
+    this.emit('client_closed', client);
   } else {
     client.once('drain', function () {
+      this.emit('client_closed', client);
       client.disconnect();
     });
   }
