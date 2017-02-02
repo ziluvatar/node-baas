@@ -150,9 +150,14 @@ BaaSClient.prototype._sendRequest = function (params, callback) {
     return setImmediate(callback, new Error('The socket is closed.'));
   }
 
-  const request = new RequestMessage(_.extend({
-    'id': randomstring.generate(7)
-  }, params));
+  try {
+    const request = new RequestMessage(_.extend({
+      'id': randomstring.generate(7)
+    }, params))
+  } catch (err) {
+    return callback(err);
+  };
+
   // console.dir(request);
   this._requestCount++;
   this._pendingRequests++;
