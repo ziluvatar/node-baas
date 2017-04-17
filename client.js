@@ -62,8 +62,8 @@ function BaaSClient (options, done) {
   this._sendRequestSafe = disyuntor(this._sendRequest.bind(this), _.extend({
     name: 'baas.client',
     timeout: options.requestTimeout,
-    monitor: (details) => {
-      this.emit('breaker_error', details.err);
+    onTrip: (err, failures, currentCooldown) => {
+      this.emit('breaker_error', err);
     }
   }, options.breaker || {} ));
 
@@ -150,15 +150,15 @@ BaaSClient.prototype._sendRequest = function (params, callback) {
     return setImmediate(callback, new Error('The socket is closed.'));
   }
 
+  var request;
   try {
-    const request = new RequestMessage(_.extend({
+    request = new RequestMessage(_.extend({
       'id': randomstring.generate(7)
     }, params))
   } catch (err) {
     return callback(err);
   };
 
-  // console.dir(request);
   this._requestCount++;
   this._pendingRequests++;
 
